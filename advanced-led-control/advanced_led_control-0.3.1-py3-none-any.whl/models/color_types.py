@@ -1,0 +1,6 @@
+CT_HEX  = 0
+CT_NAME = 1
+CT_RGB  = 2
+
+CT_DEFAULT = CT_RGB
+
