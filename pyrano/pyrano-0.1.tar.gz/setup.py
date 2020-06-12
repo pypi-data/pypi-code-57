@@ -1,0 +1,32 @@
+from distutils.core import setup
+setup(
+  name = 'pyrano',
+  packages = ['pyrano'],
+  version = '0.1',
+  license='MIT',
+  description = 'Solar irradiance simulations for PV applications',
+  author = 'Adam Bognar',
+  author_email = 'a.bognar@tue.nl',
+  url = 'https://gitlab.tue.nl/bp-tue/pyrano',
+  download_url = 'https://gitlab.tue.nl/bp-tue/pyrano/-/archive/v0.1/pyrano-v0.1.tar.gz',
+  keywords = ['solar', 'irradiance', 'pv', 'radiance', 'energyplus', 'pvmismatch', 'lidar', 'pointclouds'],
+  install_requires=[
+          'pandas',
+          'numpy',
+          'matplotlib',
+          'eppy',
+          'geomeppy',
+          'eppy',
+          'sklearn',
+          'Pillow',
+          'Rtree',
+      ],
+  classifiers=[
+    'License :: OSI Approved :: MIT License',
+    'Development Status :: 4 - Beta',
+    'Operating System :: OS Independent',
+    'Intended Audience :: Science/Research',
+    'Programming Language :: Python :: 3',
+    'Topic :: Scientific/Engineering',
+  ],
+)
