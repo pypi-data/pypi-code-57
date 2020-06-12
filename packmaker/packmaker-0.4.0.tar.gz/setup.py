@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+import sys
+if sys.version_info.major < 3:
+    print('Packmaker requires Python 3')
+    sys.exit(-1)
+
+from setuptools import find_packages, setup
+
+with open('README.md', 'r') as fh:
+    long_description = fh.read()
+
+setup(
+  name='packmaker',
+  version='0.4.0',
+  description='minecraft modpack maker',
+  long_description=long_description,
+  long_description_content_type="text/markdown",
+  author='Mark Crewson',
+  author_email='mark@crewson.net',
+  url="http://minecraft.pages.routh.io/tools/packmaker",
+
+  classifiers=[
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Games/Entertainment",
+  ],
+
+  keywords='minecraft modded modpack',
+
+  packages=find_packages(),
+
+  install_requires=[
+    'prettytable',
+    'python-dateutil',
+    'pyyaml',
+    'requests',
+    'requests_cache',
+    'urllib3',
+  ],
+
+  python_requires='>=3',
+
+  entry_points={
+    'console_scripts': [
+        'packmaker = packmaker.main:main'
+    ]
+  }
+)
