@@ -1,0 +1,118 @@
+#!/usr/bin/env python
+from setuptools import setup
+setup(
+  name = 'cs.units',
+  author = 'Cameron Simpson',
+  author_email = 'cs@cskk.id.au',
+  version = '20200613',
+  url = 'https://bitbucket.org/cameron_simpson/css/commits/all',
+  description =
+    'unit suffixes for nonnegative integers; parsing and transcription',
+  long_description =
+    ('Functions for decomposing nonnegative integers according to various unit '    
+ 'scales.\n'    
+ '\n'    
+ '*Latest release 20200613*:\n'    
+ 'New UNSCALED_SCALE for no units.\n'    
+ '\n'    
+ 'Presupplied scales:\n'    
+ '* `BINARY_BYTES_SCALE`: Binary units of (B)ytes, KiB, MiB, GiB etc.\n'    
+ '* `DECIMAL_BYTES_SCALE`: Decimal units of (B)ytes, KB, MB, GB etc.\n'    
+ '* `DECIMAL_SCALE`: Unit suffixes K, M, G etc.\n'    
+ '* `TIME_SCALE`: Units of (s)econds, (m)inutes, (h)ours, (d)ays and (w)eeks.\n'    
+ '* `UNSCALED_SCALE`: no units\n'    
+ '\n'    
+ '## Function `combine(components, scale)`\n'    
+ '\n'    
+ 'Combine a sequence of value components as from `human()` into an integer.\n'    
+ '\n'    
+ '## Function `geek_bytes(n)`\n'    
+ '\n'    
+ 'Decompose a nonnegative integer `n` into counts by unit\n'    
+ 'from `BINARY_BYTES_SCALE`.\n'    
+ '\n'    
+ '## Function `human(n, scale)`\n'    
+ '\n'    
+ 'Decompose a nonnegative integer `n` into counts by unit from `scale`.\n'    
+ '\n'    
+ 'Parameters:\n'    
+ '* `n`: a nonnegative integer.\n'    
+ '* `scale`: a sequence of `(factor,unit)` where factor is the\n'    
+ '  size factor to the follow scale and `unit` is the designator\n'    
+ '  of the unit.\n'    
+ '\n'    
+ '## Function `human_bytes(n)`\n'    
+ '\n'    
+ 'Decompose a nonnegative integer `n` into counts by unit\n'    
+ 'from `DECIMAL_BYTES_SCALE`.\n'    
+ '\n'    
+ '## Function `human_time(n, scale=None)`\n'    
+ '\n'    
+ 'Decompose a nonnegative integer `n` into counts by unit\n'    
+ 'from `TIME_SCALE`.\n'    
+ '\n'    
+ '## Function `multiparse(s, scales, offset=0)`\n'    
+ '\n'    
+ 'Parse an integer followed by an optional scale and return computed value.\n'    
+ 'Returns the parsed value and the new offset.\n'    
+ '\n'    
+ 'Parameters:\n'    
+ '* `s`: the string to parse.\n'    
+ '* `scales`: an iterable of scale arrays of (factor, unit_name).\n'    
+ '* `offset`: starting position for parse.\n'    
+ '\n'    
+ '## Function `parse(s, scale, offset=0)`\n'    
+ '\n'    
+ 'Parse an integer followed by an optional scale and return computed value.\n'    
+ 'Returns the parsed value and the new offset.\n'    
+ '\n'    
+ 'Parameters:\n'    
+ '* `s`: the string to parse.\n'    
+ '* `scale`: a scale array of (factor, unit_name).\n'    
+ '* `offset`: starting position for parse.\n'    
+ '\n'    
+ "## Function `transcribe(n, scale, max_parts=None, skip_zero=False, sep='')`\n"    
+ '\n'    
+ 'Transcribe a nonnegative integer `n` against `scale`.\n'    
+ '\n'    
+ 'Parameters:\n'    
+ '* `n`: a nonnegative integer.\n'    
+ '* `scale`: a sequence of (factor, unit) where factor is the\n'    
+ '  size factor to the follow scale and `unit` is the designator\n'    
+ '  of the unit.\n'    
+ '* `max_parts`: the maximum number of components to transcribe.\n'    
+ '* `skip_zero`: omit components of value 0.\n'    
+ "* `sep`: separator between words, default: `''`.\n"    
+ '\n'    
+ '## Function `transcribe_bytes_geek(n, max_parts=1, **kw)`\n'    
+ '\n'    
+ 'Transcribe a nonnegative integer `n` against `BINARY_BYTES_SCALE`.\n'    
+ '\n'    
+ '## Function `transcribe_bytes_human(n, max_parts=1, **kw)`\n'    
+ '\n'    
+ 'Transcribe a nonnegative integer `n` against `DECIMAL_BYTES_SCALE`.\n'    
+ '\n'    
+ '## Function `transcribe_time(n, max_parts=3, **kw)`\n'    
+ '\n'    
+ 'Transcribe a nonnegative integer `n` against `TIME_SCALE`.\n'    
+ '\n'    
+ '# Release Log\n'    
+ '\n'    
+ '\n'    
+ '\n'    
+ '*Release 20200613*:\n'    
+ 'New UNSCALED_SCALE for no units.\n'    
+ '\n'    
+ '*Release 20190220*:\n'    
+ 'Dependency fix.\n'    
+ '\n'    
+ '*Release 20181228*:\n'    
+ 'Initial PyPI release.'),
+  classifiers = ['Programming Language :: Python', 'Programming Language :: Python :: 2', 'Programming Language :: Python :: 3', 'Development Status :: 4 - Beta', 'Intended Audience :: Developers', 'Operating System :: OS Independent', 'Topic :: Software Development :: Libraries :: Python Modules', 'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)'],
+  install_requires = ['cs.lex'],
+  keywords = ['python2', 'python3'],
+  license = 'GNU General Public License v3 or later (GPLv3+)',
+  long_description_content_type = 'text/markdown',
+  package_dir = {'': 'lib/python'},
+  py_modules = ['cs.units'],
+)
