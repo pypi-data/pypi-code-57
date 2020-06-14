@@ -1,0 +1,7 @@
+title = 'requests-gcp'
+description = 'Python requests wrapper for service-to-service auth on GCP'
+url = 'https://github.com/adrianchifor/requests-gcp'
+version = '0.1.1'
+author = 'Adrian Chifor'
+author_email = 'me@adrianchifor.com'
+license = 'Apache License 2.0'
