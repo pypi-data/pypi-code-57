@@ -1,0 +1,33 @@
+from setuptools import setup, find_packages
+from koalixcrm.version import KOALIXCRM_VERSION
+
+setup(name='koalix-crm',
+      version=KOALIXCRM_VERSION,
+      description='koalixcrm is a tiny and easy to use Customer-Relationship-Management'
+                  ' Software (CRM) including tiny and easy to use Accounting Software',
+      url='http://github.com/scaphilo/koalixcrm',
+      author='Aaron Riedener',
+      author_email='aaron.riedener@gmail.com',
+      license='BSD',
+      packages=find_packages(exclude=["projectsettings", "documentation"]),
+      install_requires=['Django==2.2.9',
+                        'django-filebrowser==3.12.1',
+                        'lxml==4.4.2',
+                        'olefile==0.46',
+                        'Pillow==6.2.0',
+                        'psycopg2-binary==2.8.4',
+                        'pytz==2019.3',
+                        'django-grappelli==2.13.3',
+                        'djangorestframework==3.11.0',
+                        'djangorestframework-xml==1.4.0',
+                        'markdown==3.1.1',
+                        'django-filter==2.2.0',
+                        'pandas==0.25.2',
+                        'matplotlib==3.1.1',
+                        ],
+      zip_safe=False,
+      classifiers=['Development Status :: 4 - Beta',
+                   'Programming Language :: Python :: 3.4', ],
+      python_requires='~=3.5',
+      include_package_data=True,
+)
