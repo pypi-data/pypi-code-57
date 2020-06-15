@@ -1,0 +1,3 @@
+
+import pavlovadm
+pavlovadm.main()
