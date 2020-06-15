@@ -1,0 +1,110 @@
+from pydantic import BaseModel
+
+
+class Classify(BaseModel):
+    class Config:
+        _model_id = "AskUbuntu"
+        _text = "Est-il recommandé d'utiliser MongoDb pour indexer mes documents ?"
+        schema_extra = {
+            "example": {
+                "text": _text
+            },
+            "_python": [f"model_id = \"{_model_id}\"", f"text = \"{_text}\"",
+                        "client.classifier.classify(model_id, text)"]
+        }
+
+
+class CreateDocuments(BaseModel):
+    class Config:
+        _model_id = "AskUbuntu"
+        _documents = [{
+            "text": "How to setup wireless printing from a printer connected via usb on Ubuntu Server 12.10?",
+            "class_id": "Setup Printer"
+        }]
+
+        schema_extra = {
+            "example": {
+                "documents": _documents
+            },
+            "_python": [f"model_id = \"{_model_id}\"", f"documents = \"{_documents}\"",
+                        "client.classifier.create_documents(model_id, documents)"]
+        }
+
+
+class DeleteDocument(BaseModel):
+    class Config:
+        _model_id = "AskUbuntu"
+        _sentence_id = "PQk4AQbu"
+        schema_extra = {
+            "_python": [f"model_id = \"{_model_id}\"", f"sentence_id = \"{_sentence_id}\"",
+                        "client.classifier.delete_document(model_id, sentence_id)"]
+        }
+
+
+class CreateModel(BaseModel):
+    class Config:
+        _model_id = "AskUbuntu"
+        schema_extra = {
+            "_python": [f"model_id = \"{_model_id}\"",
+                        "client.classifier.create_model(model_id)"]
+        }
+
+
+class TrainModel(BaseModel):
+    class Config:
+        _model_id = "AskUbuntu"
+        schema_extra = {
+            "_python": [f"model_id = \"{_model_id}\"",
+                        "client.classifier.train_model(model_id)"]
+        }
+
+
+class DeployModel(BaseModel):
+    class Config:
+        _model_id = "AskUbuntu"
+        schema_extra = {
+            "_python": [f"model_id = \"{_model_id}\"",
+                        "client.classifier.deploy_model(model_id)"]
+        }
+
+
+class ClearModel(BaseModel):
+    class Config:
+        _model_id = "AskUbuntu"
+        schema_extra = {
+            "_python": [f"model_id = \"{_model_id}\"",
+                        "client.classifier.clear_model(model_id)"]
+        }
+
+
+class DeleteModel(BaseModel):
+    class Config:
+        _model_id = "AskUbuntu"
+        schema_extra = {
+            "_python": [f"model_id = \"{_model_id}\"",
+                        "client.classifier.delete_model(model_id)"]
+        }
+
+
+class UpdateDocument(BaseModel):
+    class Config:
+        _model_id = "AskUbuntu"
+        _class_id = "Software Recommendation"
+        _document_id = "PQk4AQbu"
+        schema_extra = {
+            "example": {
+                "class_id": _class_id
+            },
+            "_python": [f"model_id = \"{_model_id}\"", f"document_id = \"{_document_id}\"",
+                        f"class_id = \"{_class_id}\"",
+                        "client.classifier.update_document(model_id, document_id, class_id=class_id)"]
+        }
+
+
+class ListDocuments(BaseModel):
+    class Config:
+        _model_id = "AskUbuntu"
+        schema_extra = {
+            "_python": [f"model_id = \"{_model_id}\"",
+                        "client.classifier.list_documents(model_id)"]
+        }
