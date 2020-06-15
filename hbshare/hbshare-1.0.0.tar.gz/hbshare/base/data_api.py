@@ -1,0 +1,50 @@
+# !/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Pro数据接口 
+Created on 2020/06/15
+@author: meng.lv
+@group : hbshare
+"""
+
+import pandas as pd
+import simplejson as json
+from functools import partial
+import requests
+
+
+class DataApi:
+
+    __token = ''
+    __base_url = 'https://data.howbuy.com'
+
+    def __init__(self, token, timeout=10):
+        """
+        Parameters
+        ----------
+        token: str
+            API接口TOKEN，用于用户认证
+        """
+        self.__token = token
+        self.__timeout = timeout
+
+    def query(self, url, method='get', post_data={}):
+        headers = {
+            "token": self.__token
+        }
+
+        if method == 'get':
+            res = requests.get(url, headers=headers, timeout=self.__timeout)
+        else:
+            res = requests.post(url, json=post_data, headers=headers, timeout=self.__timeout)
+
+        result = json.loads(res.text)
+
+        return result
+
+    def __getattr__(self, name):
+        return partial(self.query, name)
+
+    def __str__(self):
+        return u"%s, %s" % (self.__base_url, self.__token)
