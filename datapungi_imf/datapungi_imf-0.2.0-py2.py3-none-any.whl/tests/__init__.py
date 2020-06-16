@@ -1,0 +1,1 @@
+from datapungi_imf.tests.main import runTests
