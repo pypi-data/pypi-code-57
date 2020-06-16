@@ -1,0 +1,1 @@
+default_app_config = 'corgy_common.apps.CorgyCommonConfig'
