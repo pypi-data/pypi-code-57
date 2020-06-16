@@ -1,0 +1,5 @@
+class SessionState:
+    ENGAGED = u'ENGAGED'
+    AVAILABLE = u'AVAILABLE'
+    REMOVED = u'REMOVED'
+    TERMINATED = u'TERMINATED'
