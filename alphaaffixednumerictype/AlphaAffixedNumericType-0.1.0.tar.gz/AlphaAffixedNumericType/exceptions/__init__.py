@@ -1,0 +1,2 @@
+class NumericArithmeticException(Exception):
+    pass
