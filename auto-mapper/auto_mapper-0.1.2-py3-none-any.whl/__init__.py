@@ -1,0 +1,1 @@
+from .app.mapper import Mapper as AutoMapper
