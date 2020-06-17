@@ -1,0 +1,2 @@
+# Version of python-slides package
+__version__ = "0.0.1"
