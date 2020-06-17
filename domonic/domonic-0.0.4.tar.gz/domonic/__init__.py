@@ -1,0 +1,151 @@
+# -*- coding: utf-8 -*-
+"""
+    domonic
+    ~~~~~
+    
+    Generate HTML using python 3
+"""
+
+__version__ = "0.0.4"
+
+from typing import *
+
+from .html import *
+from .dom import *
+from .javascript import *
+
+import requests
+
+class domonic:
+
+    @staticmethod
+    def get(url:str):
+        ''' downloads html and converts to domonic '''
+        r = requests.get( url )
+        return domonic.parse(r.text)
+
+    @staticmethod
+    def print(domonic) -> str :
+        ''' outputs HTML str '''
+        # TODO - prettify by using newlines in returned content to save installing this?
+        # from html5print import HTMLBeautifier
+        # render(HTMLBeautifier.beautify(render(output), 4), 'index.html')
+        pass
+
+    @staticmethod
+    def parse(html:str) -> str :
+        ''' HTML as input and returns python '''
+
+        print("attempting to parse the page")
+
+        import re
+
+        html = ''.join(html.split('<!DOCTYPE HTML>'))
+        html = ''.join(html.split('<!doctype html>'))
+        
+        # html = "<html><body>some content</body></html>"
+
+        htmltags = ["html","span","button","link","form","nav","details","summary","header","head","body","meta","title","div","footer","img","a","p","h1","h2","h3","h4","h5","h6","hr","ul","ol","li","time","template","label","input","small","strong","option","select","main","td","tr","thead","th","table","tbody","canvas","b","center","br"]
+
+        for tag in htmltags:
+
+            print(tag)
+
+            reg = f"<{tag}>"
+            pattern = re.compile(reg)
+            html = re.sub( pattern, f'{tag}(', html )#, flags=re.IGNORECASE )
+
+            # second pass. atrributed
+            reg = f"<{tag}"
+            pattern = re.compile(reg)
+            html = re.sub( pattern, f'{tag}(', html )#, flags=re.IGNORECASE )
+            
+            reg = f"</{tag}>"
+            pattern = re.compile(reg)
+            html = re.sub( pattern, ')', html)#, flags=re.IGNORECASE )
+
+            reg = f"/>"
+            pattern = re.compile(reg)
+            html = re.sub( pattern, ')', html)#, flags=re.IGNORECASE )
+
+
+        # close any tags that arent properly self closing
+        flag=False
+        increase_index=0 # by the amount of new chars you add
+        for index,char in enumerate(html):
+            index = index+increase_index
+            if char=="(":
+                flag=True
+                tag = html[index-4] + html[index-3] + html[index-2] + html[index-1]
+                print(tag)
+
+            if char==")":flag=False
+            if char==">" and flag is True:
+                if 'meta' in tag or 'link' in tag or 'hr' in tag:
+                    html = f"{html[:index]}),{html[index+1:]}" # replace it for a '),'
+                    increase_index +=1
+                else:
+                    html = f"{html[:index]},{html[index+1:]}" # replace for a ','
+                    # index = index-1
+                    # html = f"{html[:index]}).html({html[index+1:]}" # replace for a ','
+                    # increase_index +=6
+                
+
+        # strip any comments
+        cleaned=[]
+        for line in html.splitlines():
+            if "<!" in line:
+                continue
+            cleaned.append(line)
+        html = '\n'.join(cleaned)
+
+
+        attributes = ["alt","integrity","crossorigin","charset","lang","class","id","style","placeholder","text","value","href","width","height","src","name","content","rel","color","type","size"]        
+        # put underscores on all the attributes
+        for attr in attributes:
+            reg = f' {attr}="'
+            pattern = re.compile(reg)
+            html = re.sub( pattern, f' _{attr}="', html )#, flags=re.IGNORECASE )
+
+        # commas between them
+        for attr in attributes:
+            reg = f'" _{attr}="'
+            pattern = re.compile(reg)
+            html = re.sub( pattern, f'", _{attr}="', html )#, flags=re.IGNORECASE )
+
+
+        # TODO - diff between loaded and inline
+        # get the style and script tags
+        htmltags = ["style","script"]
+        for tag in htmltags:
+            reg = f"<{tag}>"
+            pattern = re.compile(reg)
+            html = re.sub( pattern, f'{tag}("""', html )#, flags=re.IGNORECASE )
+
+            # second pass. atrributed
+            reg = f"<{tag}"
+            pattern = re.compile(reg)
+            html = re.sub( pattern, f'{tag}("""', html )#, flags=re.IGNORECASE )
+            
+            reg = f"</{tag}>"
+            pattern = re.compile(reg)
+            html = re.sub( pattern, '""")', html)#, flags=re.IGNORECASE )
+
+            reg = f"/>"
+            pattern = re.compile(reg)
+            html = re.sub( pattern, '""")', html)#, flags=re.IGNORECASE )
+
+
+        html = ')'.join(html.split(',)'))
+
+        print(html)
+
+        # return eval('print("test")')
+        # return eval('Location()')
+        # return eval('html()')
+        return html
+
+    # @staticmethod
+    # def filtered_spit(self, domonic, exclude) -> str:
+        ''' outputs HTML str without the elements passed '''
+        # pass
