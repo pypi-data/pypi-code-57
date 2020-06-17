@@ -1,0 +1,44 @@
+# RA, 2020-06-17
+
+from typing import Callable
+
+
+class First:
+    """
+    Example:
+        f = First(list.pop).then(str.lower).then(tuple)
+        assert f(["ABC", "XYZ"]) == ('x', 'y', 'z')
+    """
+
+    @classmethod
+    def _as_callable(cls, f):
+        if isinstance(f, Callable):
+            return f
+        if hasattr(f, "__getitem__"):
+            return f.__getitem__
+        raise RuntimeError("It appears that the passed object f supports neither f(-) nor f[-].")
+
+    def __init__(self, f):
+        self.__ff = []
+        self.then(f)
+
+    def then(self, f):
+        self.__ff.append(self._as_callable(f))
+        return self
+
+    def each(self, f):
+        self.__ff.append(
+            lambda c: map(self._as_callable(f), c)
+        )
+        return self
+
+    def __matmul__(self, other):
+        return First(other).then(self)
+
+    def __call__(self, x):
+        for f in self.__ff:
+            x = f(x)
+        return x
+
+    def __getitem__(self, x):
+        return self(x)
