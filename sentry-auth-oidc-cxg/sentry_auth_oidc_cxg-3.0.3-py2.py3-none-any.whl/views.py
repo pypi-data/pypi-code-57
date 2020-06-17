@@ -1,0 +1,111 @@
+from __future__ import absolute_import, print_function
+
+import logging
+import requests
+
+from sentry.auth.view import AuthView, ConfigureView
+from sentry.utils import json
+from sentry.utils.signing import urlsafe_b64decode
+
+from .constants import (
+    USERINFO_ENDPOINT,
+    ERR_INVALID_RESPONSE,
+    ISSUER
+)
+
+logger = logging.getLogger('sentry.auth.oidc')
+
+
+class FetchUser(AuthView):
+    def __init__(self, domains, version, *args, **kwargs):
+        self.domains = domains
+        self.version = version
+        super(FetchUser, self).__init__(*args, **kwargs)
+
+    def get_user_info(self, bearer_token):
+        endpoint = USERINFO_ENDPOINT
+        bearer_auth = 'Bearer ' + bearer_token
+        return requests.get(endpoint + "?schema=openid",
+                            headers={'Authorization': bearer_auth},
+                            timeout=2.0).json()
+
+    def dispatch(self, request, helper):
+        data = helper.fetch_state('data')
+        logger.info("data: {}".format(data))
+        try:
+            access_token = data['access_token']
+        except KeyError:
+            logger.error('Missing access_token in OAuth response: %s' % data)
+            return helper.error(ERR_INVALID_RESPONSE)
+
+        try:
+            user = self.get_user_info(access_token)
+            logger.info("user: {}".format(user))
+        except Exception as exc:
+            logger.error(u'Unable to fetch user info: %s' % exc, exc_info=True)
+            return helper.error(ERR_INVALID_RESPONSE)
+
+        if not user.get('sub'):
+            logger.error('Missing sub in id_token payload: %s' % user)
+            return helper.error(ERR_INVALID_RESPONSE)
+
+        domain = user.get('iss')
+
+        helper.bind_state('domain', domain)
+        helper.bind_state('user', user)
+        return helper.next_step()
+
+
+class OIDCConfigureView(ConfigureView):
+    def dispatch(self, request, organization, auth_provider):
+        config = auth_provider.config
+        if config.get('domain'):
+            domains = [config['domain']]
+        else:
+            domains = config.get('domains')
+        return self.render('oidc/configure.html', {
+            'provider_name': ISSUER or "",
+            'domains': domains or []
+        })
+
+
+class FetchDetailedUserInfo(AuthView):
+    def __init__(self, domains, version, *args, **kwargs):
+        self.domains = domains
+        self.version = version
+        super(FetchDetailedUserInfo, self).__init__(*args, **kwargs)
+
+    def dispatch(self, request, helper):
+        data = helper.fetch_state('data')
+        logger.info("data: {}".format(data))
+
+        try:
+            id_token = data['id_token']
+            logger.info("id token: {}".format(data['id_token']))
+        except KeyError:
+            logger.error('Missing id_token in OAuth response: %s' % data)
+            return helper.error(ERR_INVALID_RESPONSE)
+
+        try:
+            _, payload, _ = map(urlsafe_b64decode, id_token.split('.', 2))
+            logger.info("payload: {}".format(payload))
+        except Exception as exc:
+            logger.error(u'Unable to decode id_token: %s' % exc, exc_info=True)
+            return helper.error(ERR_INVALID_RESPONSE)
+
+        try:
+            payload = json.loads(payload)
+            logger.info("payload: {}".format(payload))
+        except Exception as exc:
+            logger.error(u'Unable to decode id_token payload: %s' % exc, exc_info=True)
+            return helper.error(ERR_INVALID_RESPONSE)
+
+        if not payload.get('sub'):
+            logger.error('Missing sub in id_token payload: %s' % id_token)
+            return helper.error(ERR_INVALID_RESPONSE)
+
+        domain = payload.get('iss')
+
+        helper.bind_state('domain', domain)
+        helper.bind_state('user', payload)
+        return helper.next_step()
