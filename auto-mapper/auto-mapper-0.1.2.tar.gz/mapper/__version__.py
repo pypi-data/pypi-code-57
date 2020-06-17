@@ -1,0 +1,8 @@
+__title__ = 'auto-mapper'
+__description__ = 'An auto mapper that accepts a list of string and a list of objects of the format {\'code\', \'name\'} and return a list of object where each \'code\' is mapped to the most similar strings from the list of strings'
+__url__ = 'https://pypi.org/project/auto-mapper/'
+__version__ = '0.1.2'
+__author__ = 'Ilyasse Benrkia'
+__author_email__ = 'benrkyailyass@gmail.com'
+__license__ = 'MIT'
+__copyright__ = 'Copyright 2020 Ilyasse Benrkia'
