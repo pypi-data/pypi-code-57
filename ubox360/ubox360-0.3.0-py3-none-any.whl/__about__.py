@@ -1,0 +1,6 @@
+__author__ = "Albin Kauffmann"
+__email__ = "albin@kauff.org"
+__description__ = "A tool to map joystick events to the one of an Xbox 360 controller"
+__url__ = "https://gitlab.com/albinou/python-ubox360"
+__license__ = "GPLv3"
+__version__ = "0.3.0"
