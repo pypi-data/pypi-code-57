@@ -1,0 +1,24 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) 2016 - 2020 Sqreen. All rights reserved.
+# Please refer to our terms for more information:
+#
+#     https://www.sqreen.io/terms.html
+#
+""" Record the current request in flask application
+"""
+from logging import getLogger
+
+from ..frameworks.flask_framework import FlaskRequest, FlaskResponse
+from .record_request import RecordRequest
+
+LOGGER = getLogger(__name__)
+
+
+class RecordRequestFlask(RecordRequest):
+    def pre(self, instance, args, kwargs, **options):
+        from flask import request
+
+        self._store_request(FlaskRequest(request))
+
+    def post(self, instance, args, kwargs, result=None, **options):
+        self.storage.store_response(FlaskResponse(result))
