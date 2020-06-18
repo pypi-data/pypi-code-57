@@ -1,0 +1,11 @@
+#!/usr/bin/python3.6
+# -*- coding:UTF-8 -*-
+#添加一些常量
+import pkg_resources
+PI = 3.1415926
+E = 2.7182818
+ER = 6371
+OMEGA = 0.00072722
+IV = 999999
+station_国家站 = pkg_resources.resource_filename('meteva', "resources/stations/sta2411_alt.txt")
+station_国家站_考核区域站 = pkg_resources.resource_filename('meteva', "resources/stations/stat10461.txt")
