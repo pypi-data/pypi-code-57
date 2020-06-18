@@ -1,0 +1,1 @@
+from djangocontact.views.EmailContactView import EmailContactView
