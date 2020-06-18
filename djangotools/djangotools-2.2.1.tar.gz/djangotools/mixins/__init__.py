@@ -1,0 +1,1 @@
+from djangotools.mixins.OnlyAuthorAccess import OnlyAuthorAccess
