@@ -1,0 +1,1 @@
+from .celeryt import CeleryT
