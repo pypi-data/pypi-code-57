@@ -1,0 +1,1 @@
+from djangocontact.modeladmins.EmailModelAdmin import EmailModelAdmin

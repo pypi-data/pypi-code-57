@@ -1,0 +1,1 @@
+from djangocontact.forms.EmailForm import EmailForm
