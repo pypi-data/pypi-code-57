@@ -1,0 +1,2 @@
+class PubsubCreatorError(Exception):
+    pass
