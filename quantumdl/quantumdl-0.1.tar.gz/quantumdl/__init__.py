@@ -1,0 +1,1 @@
+from quantumdl.quantummodel import model
