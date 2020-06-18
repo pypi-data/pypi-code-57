@@ -1,0 +1,362 @@
+'''
+===============================
+Model of Conditional Cell Death
+===============================
+
+Fully-capitalized words and phrases have the meanings specified in
+:rfc:`2119`.
+
+This module holds machinery for modeling cell death that is conditioned
+on the state of the cell. This machinery consists of *death detector
+classes* and *death process classes*.
+
+----------------------
+Death Detector Classes
+----------------------
+
+Death detector classes encode a model (which may be configured upon
+instantiation) for when a cell should die. These classes can be
+instantiated to give death detectors, which are used by the death
+processes we describe below.
+
+Death detector classes MUST subclass :py:class:`DetectorInterface` and
+implement :py:meth:`DetectorInterface.check_can_survive` as specified in
+its documentation.
+
+---------------------
+Death Process Classes
+---------------------
+
+During a simulation, death is executed by a death :term:`process`, whose
+model is declared in a death :term:`process class`. Each of these
+process classes SHOULD use a death detector, as detailed above, to
+determine when the cell should die. The mechanism by which the cell's
+death is modeled depends on the form of death being modeled. For an
+example, see :py:class:`DeathFreezeState`.
+'''
+
+from __future__ import absolute_import, division, print_function
+
+import os
+
+from vivarium.core.composition import (
+    plot_simulation_output,
+    simulate_compartment_in_experiment,
+    PROCESS_OUT_DIR,
+)
+from vivarium.core.experiment import Compartment
+from vivarium.core.process import Process
+
+TOY_ANTIBIOTIC_THRESHOLD = 5.0
+TOY_INJECTION_RATE = 2.0
+
+
+class DetectorInterface(object):
+    '''Interface that MUST be subclassed by all death detectors
+
+    Each subclass SHOULD check for a condition that might kill the cell.
+
+    For an example of a death detector class, see
+    :py:class:`AntibioticDetector`.
+    '''
+
+    def __init__(self):
+        self.needed_state_keys = {}
+
+    def check_can_survive(self, states):
+        '''Check whether the current state is survivable by the cell
+
+        Each subclass MUST implement this method. The implementation
+        SHOULD check whether the cell can survive given its current
+        state.
+
+        Arguments:
+            states (dict): The states of each port in the cell, as a
+                dictionary.
+
+        Returns:
+            bool: True if the cell can survive, False if it cannot.
+        '''
+        raise NotImplementedError(
+            'Detector should implement check_can_survive')
+
+
+class AntibioticDetector(DetectorInterface):
+
+    def __init__(
+        self, antibiotic_threshold=0.9, antibiotic_key='antibiotic'
+    ):
+        '''Death detector for antibiotics
+
+        Checks whether the cell can survive the current internal
+        antibiotic concentrations.
+
+        Arguments:
+            antibiotic_threshold (float): The maximum internal
+                antibiotic concentration the cell can survive.
+            antibiotic_key (string): The name of the variable storing
+                the cell's internal antibiotic concentration.
+        '''
+        super(AntibioticDetector, self).__init__()
+        self.threshold = antibiotic_threshold
+        self.key = antibiotic_key
+        self.needed_state_keys.setdefault(
+            'internal', set()).add('antibiotic')
+
+    def check_can_survive(self, states):
+        '''Checks if the current antibiotic concentration is survivable
+
+        The internal antibiotic concentration MUST be stored in a
+        variable of a port named ``internal``.
+
+        Returns:
+            bool: False if the antibiotic concentration is strictly
+                greater than the the threshold. True otherwise.
+        '''
+        concentration = states['internal'][self.key]
+        if concentration > self.threshold:
+            return False
+        return True
+
+
+#: Map from detector class names to detector classes
+DETECTOR_CLASSES = {
+    'antibiotic': AntibioticDetector,
+}
+
+
+class DeathFreezeState(Process):
+
+    def __init__(self, initial_parameters=None):
+        '''Model Death by Removing Processes
+
+        This process class models death by, with a few exceptions,
+        freezing the internal state of the cell. We implement this by
+        removing from this process's :term:`compartment` all processes,
+        specified with the ``targets`` configuration.
+
+        Configuration:
+
+        * **``detectors``**: A list of the names of the detector classes
+          to include. Death will be triggered if any one of these
+          triggers death. Names are specified in
+          :py:const:`DETECTOR_CLASSES`.
+        * **``targets``: A list of the names of the processes
+          that will be removed when the cell dies. The names are
+          specified in the compartment's :term:`topology`.
+
+        :term:`Ports`:
+
+        * **``internal``**: The internal state of the cell.
+        * **``global``**: Should be linked to the ``global``
+          :term:`store`.
+        '''
+        if initial_parameters is None:
+            initial_parameters = {}
+        self.detectors = [
+            DETECTOR_CLASSES[name](**config_dict)
+            for name, config_dict in initial_parameters.get(
+                'detectors', {}).items()
+        ]
+        # List of names of processes that will remain after death
+        self.targets = initial_parameters.get('targets', [])
+
+        ports = {
+            'internal': set(),
+            'global': ['dead']}
+
+        for detector in self.detectors:
+            needed_keys = detector.needed_state_keys
+            for port in needed_keys:
+                keys = ports.setdefault(port, set())
+                keys |= needed_keys[port]
+        for port, keys in ports.items():
+            ports[port] = list(keys)
+        super(DeathFreezeState, self).__init__(ports, initial_parameters)
+
+    def ports_schema(self):
+        emit_keys = {
+            'global': ['dead']}
+        set_update = {
+            'global': {'dead': 'set'}}
+        set_ports_zero = [
+            'internal',
+            'global']
+
+        schema = {}
+        for port, states in self.ports.items():
+            schema[port] = {}
+            for state_id in states:
+                schema[port][state_id] = {}
+
+                if port in set_ports_zero:
+                    schema[port][state_id][
+                        '_default'] = 0
+
+                if port in set_update:
+                    if state_id in set_update[port]:
+                        schema[port][state_id][
+                            '_updater'] = set_update[port][state_id]
+
+                if port in emit_keys:
+                    if state_id in emit_keys[port]:
+                        schema[port][state_id][
+                            '_emit'] = True
+
+        schema['global'].update({
+            target: {
+                '_default': None}
+            for target in self.targets})
+        return schema
+
+    def next_update(self, timestep, states):
+        '''If any detector triggers death, kill the cell
+
+        When we kill the cell, we convey this by setting the ``dead``
+        variable in the ``global`` port to ``1`` instead of its default
+        ``0``.
+        '''
+        for detector in self.detectors:
+            if not detector.check_can_survive(states):
+                # kill the cell
+                return {
+                    'global': {
+                        '_delete': [
+                            ('..', target,)
+                            for target in self.targets],
+                        'dead': 1}}
+        return {}
+
+
+class ToyAntibioticInjector(Process):
+
+    def __init__(self, initial_parameters=None):
+        if initial_parameters is None:
+            initial_parameters = {}
+        self.injection_rate = initial_parameters.get(
+            'injection_rate', 1.0)
+        self.antibiotic_name = initial_parameters.get(
+            'antibiotic_name', 'antibiotic')
+        ports = {'internal': [self.antibiotic_name]}
+        super(ToyAntibioticInjector, self).__init__(ports, initial_parameters)
+
+    def ports_schema(self):
+        return {
+            'internal': {
+                self.antibiotic_name: {
+                    '_default': 0.0,
+                    '_emit': True}}}
+
+    def next_update(self, timestep, states):
+        delta = timestep * self.injection_rate
+        return {'internal': {self.antibiotic_name: delta}}
+
+
+class ToyDeath(Compartment):
+
+    def generate_processes(self, config):
+        death_parameters = {
+            'detectors': {
+                'antibiotic': {
+                    'antibiotic_threshold': TOY_ANTIBIOTIC_THRESHOLD,
+                }
+            },
+            'targets': ['injector', 'death'],
+        }
+        death_process = DeathFreezeState(death_parameters)
+        injector_parameters = {
+            'injection_rate': TOY_INJECTION_RATE,
+        }
+        injector_process = ToyAntibioticInjector(injector_parameters)
+        enduring_parameters = {
+            'injection_rate': TOY_INJECTION_RATE,
+            'antibiotic_name': 'enduring_antibiotic'
+        }
+        enduring_process = ToyAntibioticInjector(enduring_parameters)
+
+        return {
+            'death': death_process,
+            'injector': injector_process,
+            'enduring_injector': enduring_process,
+        }
+
+    def generate_topology(self, config):
+        return {
+            'death': {
+                'internal': ('cell',),
+                'global': ('global',),
+            },
+            'injector': {
+                'internal': ('cell',),
+            },
+            'enduring_injector': {
+                'internal': ('cell',),
+            },
+        }
+
+
+
+def test_death_freeze_state(end_time=10, asserts=True):
+    toy_death_compartment = ToyDeath({})
+
+    init_state = {
+        'cell': {
+            'antibiotic': 0.0,
+            'enduring_antibiotic': 0.0},
+        'global': {
+            'dead': 0}}
+
+    settings = {
+        'total_time': end_time,
+        'initial_state': init_state}
+    saved_states = simulate_compartment_in_experiment(
+        toy_death_compartment,
+        settings)
+
+    if asserts:
+        # Add 1 because dies when antibiotic strictly above threshold
+        expected_death = 1 + TOY_ANTIBIOTIC_THRESHOLD // TOY_INJECTION_RATE
+        expected_saved_states = {
+            'cell': {
+                'antibiotic': [],
+                'enduring_antibiotic': [],
+            },
+            'global': {
+                'dead': [],
+            },
+            'time': [],
+        }
+        for i in range(end_time):
+            time = i + 1
+            expected_saved_states['cell']['antibiotic'].append(
+                time * TOY_INJECTION_RATE
+                if time <= expected_death
+                # Add one because death will only be detected
+                # the iteration after antibiotic above
+                # threshold. This happens because death and
+                # injector run "concurrently" in the composite,
+                # so their updates are applied after both have
+                # finished.
+                else (expected_death + 1) * TOY_INJECTION_RATE
+            )
+            expected_saved_states['cell']['enduring_antibiotic'].append(
+                time * TOY_INJECTION_RATE)
+            expected_saved_states['global']['dead'].append(
+                0 if time <= expected_death else 1)
+            expected_saved_states['time'].append(float(i))
+        assert expected_saved_states == saved_states
+
+    return saved_states
+
+
+def plot_death_freeze_state_test():
+    out_dir = os.path.join(PROCESS_OUT_DIR, 'death_freeze_state')
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+    timeseries = test_death_freeze_state(asserts=False)
+    plot_settings = {}
+    plot_simulation_output(timeseries, plot_settings, out_dir)
+
+
+if __name__ == '__main__':
+    plot_death_freeze_state_test()
