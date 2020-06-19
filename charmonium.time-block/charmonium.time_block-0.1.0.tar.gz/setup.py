@@ -1,0 +1,34 @@
+# -*- coding: utf-8 -*-
+from setuptools import setup
+
+packages = \
+['charmonium', 'charmonium.time_block']
+
+package_data = \
+{'': ['*']}
+
+install_requires = \
+['psutil>=5.7.0,<6.0.0']
+
+entry_points = \
+{'console_scripts': ['time_block = charmonium.time_block._cli:main']}
+
+setup_kwargs = {
+    'name': 'charmonium.time-block',
+    'version': '0.1.0',
+    'description': 'Time a block of code.',
+    'long_description': '=====================\ncharmonium.time_block\n=====================\n\nTime a block of code.\n\n\nQuickstart\n----------\n\n::\n\n    $ pip install charmonium.time_block\n\nHere are some reasons you would use this instead of an external\nprofiler (e.g. line_prof) or another internal profiler\n(e.g. block-timer) for measuring time larger than 0.1s.\n\n.. _`psutil`: https://github.com/giampaolo/psutil\n\n- This has sub-function granularity. With-statement context handler can time\n  blocks (in a timed-function or not).\n\n    >>> import charmonium.time_block as ch_time_block\n    >>> import time\n    >>>\n    >>> def foo():\n    ...     with ch_time_block.ctx("bar"):\n    ...         time.sleep(0.1)\n    ...\n    >>> foo()\n     > bar: running\n     > bar: 0.1s\n\n- But it can also easily annotate functions with an equivalent decorator.\n\n    >>> import charmonium.time_block as ch_time_block\n    >>> # Suppose we don\'t care how fast foo runs.\n    >>> def foo():\n    ...     bar()\n    ...\n    >>>\n    >>> @ch_time_block.ctx("bar")\n    ... def bar():\n    ...     time.sleep(0.1)\n    ...\n    >>> foo()\n     > bar: running\n     > bar: 0.1s\n\n- Like function profiling, but unlike other block-profilers, it is\n  recurrent, and it maintains a stack.\n\n    >>> import charmonium.time_block as ch_time_block\n    >>> import time\n    >>>\n    >>> @ch_time_block.decor()\n    ... def foo():\n    ...     time.sleep(0.1)\n    ...     bar()\n    ...\n    >>>\n    >>> @ch_time_block.decor()\n    ... def bar():\n    ...     time.sleep(0.2)\n    ...     with ch_time_block.ctx("baz"):\n    ...         time.sleep(0.3)\n    ...\n    >>> foo()\n     > foo: running\n     > foo > bar: running\n     > foo > bar > baz: running\n     > foo > bar > baz: 0.3s\n     > foo > bar: 0.5s\n     > foo: 0.6s\n\n- This records process measures memory usage (relatively\n  cross-platform method using `psutil`_) when ``do_gc=True``.\n\n\n- This also works for threads (or more usefully `ThreadPoolExecutor`_).\n\n.. _`ThreadPoolExecutor`: https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor\n\n    >>> import charmonium.time_block as ch_time_block\n    >>> import time\n    >>> from concurrent.futures import ThreadPoolExecutor\n    >>>\n    >>> @ch_time_block.decor()\n    ... def foo():\n    ...     time.sleep(0.1)\n    ...     baz()\n    ...\n    >>> @ch_time_block.decor()\n    ... def bar():\n    ...     time.sleep(0.2)\n    ...     baz()\n    ...\n    >>> @ch_time_block.decor()\n    ... def baz():\n    ...     return time.sleep(0.3)\n    ...\n    >>> from threading import Thread\n    >>> threads = [Thread(target=foo), Thread(target=bar)]\n    >>> for thread in threads: # doctest:+SKIP\n    ...     thread.start()\n    ...\n     > foo: running\n     > bar: running\n     > foo > baz: running\n     > bar > baz: running\n     > foo > baz: 0.3s\n     > foo: 0.4s\n     > bar > baz: 0.3s\n     > bar: 0.5s\n    >>> # TODO: get a better example, with named threads\n\n- This is less verbose. You can place annotations only around functions you care\n  about.\n\n    >>> import charmonium.time_block as ch_time_block\n    >>> import time\n    >>>\n    >>> # Suppose we don\'t care how fast foo runs.\n    >>> def foo():\n    ...     time.sleep(0.1)\n    ...     bar()\n    ...\n    >>>\n    >>> @ch_time_block.decor()\n    ... def bar():\n    ...     time.sleep(0.2)\n    ...     baz()\n    ...\n    >>>\n    >>> # suppose we don\'t care to distinguish the work of bar from the work of baz\n    >>> # If we do, just add annotation to baz as well\n    >>> def baz():\n    ...     time.sleep(0.3)\n    ...\n    >>> foo()\n     > bar: running\n     > bar: 0.5s\n    >>> # Only reports runtime of bar, and accounts the cost of bar and baz.\n\n- This reports in realtime to `logger`_ (destination customizable). This\n  is intended to let the user know what the code is doing right\n  now. E.g.\n\n     > download: running\n     > download: 0.1s\n     > decompress: running\n     > decompress: 0.2s\n     > processing: running\n     > processing: 0.4s\n\n.. _`logger`: https://docs.python.org/3.9/library/logging.html\n\n- The results are programatically accessible at runtime. In the dict returned by\n  get_stats(), the stack frame (key) is represented as a tuple of strings while\n  the profile result (value) is a pair of time and memory used.\n\n    >>> import charmonium.time_block as ch_time_block\n    >>> ch_time_block.clear()\n    >>> import time\n    >>>\n    >>> @ch_time_block.decor()\n    ... def foo():\n    ...     time.sleep(0.1)\n    ...     bar()\n    ...\n    >>>\n    >>> @ch_time_block.decor()\n    ... def bar():\n    ...     time.sleep(0.2)\n    ...     # suppose we don\'t care to distinguish the work of bar from the work of baz\n    ...     # If we do, just add annotation to baz as well\n    ...\n    >>> foo()\n     > foo: running\n     > foo > bar: running\n     > foo > bar: 0.2s\n     > foo: 0.3s\n    >>> ch_time_block.get_stats() # doctest:+SKIP\n    {(\'foo\', \'bar\'): [(0.200505, 0)], (\'foo\',): [(0.301857, 0)]}\n    >>> ch_time_block.print_stats() # doctest:+SKIP\n    foo       =  100% of total =  100% of parent = (0.30 +/- 0.00) sec = 1 (0.30 +/- 0.00) sec  (0.0 +/- 0.0) b\n    foo > bar =  100% of total =   67% of parent = (0.20 +/- 0.00) sec = 1 (0.20 +/- 0.00) sec  (0.0 +/- 0.0) b\n\n- This handles recursion. Handling recursion any other way would break\n  evaluating self / parent, because parent could be self.\n\n    >>> import charmonium.time_block as ch_time_block\n    >>> import time\n    >>>\n    >>> @ch_time_block.decor(print_args=True)\n    ... def foo(n):\n    ...     if n != 0:\n    ...         time.sleep(0.1)\n    ...         return foo(n - 1)\n    ...\n    >>> foo(2)\n     > foo(2): running\n     > foo(2) > foo(1): running\n     > foo(2) > foo(1) > foo(0): running\n     > foo(2) > foo(1) > foo(0): 0.0s\n     > foo(2) > foo(1): 0.1s\n     > foo(2): 0.2s\n\n- This does not need source-code access, so it will work from ``.eggs``.\n\n\n\n',
+    'author': 'Samuel Grayson',
+    'author_email': 'sam+dev@samgrayson.me',
+    'maintainer': None,
+    'maintainer_email': None,
+    'url': 'https://github.com/charmoniumQ/charmonium.time_block.git',
+    'packages': packages,
+    'package_data': package_data,
+    'install_requires': install_requires,
+    'entry_points': entry_points,
+    'python_requires': '>=3.6,<4.0',
+}
+
+
+setup(**setup_kwargs)
