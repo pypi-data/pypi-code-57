@@ -1,0 +1,2 @@
+from djangoarticle.forms.CategoryFormScheme import CategoryFormScheme
+from djangoarticle.forms.ArticleFormScheme import ArticleFormScheme
