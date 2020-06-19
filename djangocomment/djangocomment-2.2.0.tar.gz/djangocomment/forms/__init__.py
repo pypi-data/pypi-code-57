@@ -1,0 +1,1 @@
+from djangocomment.forms.CommentForm import CommentForm
