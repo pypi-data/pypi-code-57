@@ -1,0 +1,2 @@
+class VeeamEmError(Exception):
+    pass
