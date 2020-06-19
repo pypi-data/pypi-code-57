@@ -1,0 +1,1 @@
+from djangocomment.managers.CommentModelManager import CommentModelManager
