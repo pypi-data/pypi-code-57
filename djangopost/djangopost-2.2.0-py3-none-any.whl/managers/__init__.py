@@ -1,0 +1,2 @@
+from djangopost.managers.ArticleModelManager import ArticleModelManager
+from djangopost.managers.CategoryModelManager import CategoryModelManager

@@ -1,0 +1,2 @@
+from djangopost.modeladmins.CategoryModelAdmin import CategoryModelAdmin
+from djangopost.modeladmins.ArticleModelAdmin import ArticleModelAdmin

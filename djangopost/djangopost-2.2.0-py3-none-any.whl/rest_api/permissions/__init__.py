@@ -1,0 +1,1 @@
+from djangopost.rest_api.permissions.IsOwnerOrReadOnly import IsOwnerOrReadOnly
