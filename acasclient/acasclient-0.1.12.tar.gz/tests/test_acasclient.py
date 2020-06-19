@@ -1,0 +1,1012 @@
+#!/usr/bin/env python
+
+"""Tests for `acasclient` package."""
+
+
+import unittest
+from acasclient import acasclient
+from pathlib import Path
+import tempfile
+import shutil
+import uuid
+# SETUP
+# "bob" user name registered
+# "PROJ-00000001" registered
+
+
+def create_project_thing(code):
+    ls_thing = {
+            "lsType": "project",
+            "lsKind": "project",
+            "recordedBy": "bob",
+            "recordedDate": 1586877284571,
+            "lsLabels": [
+                {
+                    "lsType": "name",
+                    "lsKind": "project name",
+                    "labelText": code,
+                    "ignored": False,
+                    "preferred": True,
+                    "recordedDate": 1586877284571,
+                    "recordedBy": "bob",
+                    "physicallyLabled": False,
+                    "thingType": "project",
+                    "thingKind": "project"
+                },
+                {
+                    "lsType": "name",
+                    "lsKind": "project alias",
+                    "labelText": code,
+                    "ignored": False,
+                    "preferred": False,
+                    "recordedDate": 1586877284571,
+                    "recordedBy": "bob",
+                    "physicallyLabled": False,
+                    "thingType": "project",
+                    "thingKind": "project"
+                }
+            ],
+            "lsStates": [
+                {
+                    "lsType": "metadata",
+                    "lsKind": "project metadata",
+                    "lsValues": [
+                        {
+                            "lsType": "dateValue",
+                            "lsKind": "start date",
+                            "ignored": False,
+                            "recordedDate": 1586877284571,
+                            "recordedBy": "bob",
+                            "dateValue": 1586877284571
+                        }, {
+                            "lsType": "codeValue",
+                            "lsKind": "project status",
+                            "ignored": False,
+                            "recordedDate": 1586877284571,
+                            "recordedBy": "bob",
+                            "codeKind": "status",
+                            "codeType": "project",
+                            "codeOrigin": "ACAS DDICT",
+                            "codeValue": "active"
+                        }, {
+                            "lsType": "codeValue",
+                            "lsKind": "is restricted",
+                            "ignored": False,
+                            "recordedDate": 1586877284571,
+                            "recordedBy": "bob",
+                            "codeKind": "restricted",
+                            "codeType": "project",
+                            "codeOrigin": "ACAS DDICT",
+                            "codeValue": "false"
+                        }
+                    ],
+                    "ignored": False,
+                    "recordedDate": 1586877284571,
+                    "recordedBy": "bob"
+                }
+            ],
+            "lsTags": [],
+            "codeName": code
+        }
+    return ls_thing
+
+class TestAcasclient(unittest.TestCase):
+    """Tests for `acasclient` package."""
+
+    def setUp(self):
+        """Set up test fixtures, if any."""
+        creds = acasclient.get_default_credentials()
+        self.client = acasclient.client(creds)
+        self.tempdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Tear down test fixtures, if any."""
+        shutil.rmtree(self.tempdir)
+
+    def test_000_creds_from_file(self):
+        """Test creds from file."""
+        file_credentials = Path(__file__).resolve().\
+            parent.joinpath('test_acasclient',
+                            'test_000_creds_from_file_credentials')
+        creds = acasclient.creds_from_file(
+            file_credentials,
+            'acas')
+        self.assertIn("username", creds)
+        self.assertIn("password", creds)
+        self.assertIn("url"
+        , creds)
+        self.assertEqual(creds['username'], 'bob')
+        self.assertEqual(creds['password'], 'secret')
+        creds = acasclient.creds_from_file(file_credentials,
+                                           'different')
+        self.assertIn("username", creds)
+        self.assertIn("password", creds)
+        self.assertIn("url", creds)
+        self.assertEqual(creds['username'], 'differentuser')
+        self.assertEqual(creds['password'], 'secret')
+
+    def test_001_get_default_credentials(self):
+        """Test get default credentials."""
+        acasclient.get_default_credentials()
+
+    def test_002_client_initialization(self):
+        """Test initializing client."""
+        creds = acasclient.get_default_credentials()
+        acasclient.client(creds)
+
+    def test_003_projects(self):
+        """Test projects."""
+        projects = self.client.projects()
+        self.assertGreater(len(projects), 0)
+        self.assertIn('active', projects[0])
+        self.assertIn('code', projects[0])
+        self.assertIn('id', projects[0])
+        self.assertIn('isRestricted', projects[0])
+        self.assertIn('name', projects[0])
+
+    def test_004_upload_files(self):
+        """Test upload files."""
+        test_003_upload_file_file = Path(__file__).resolve().parent.\
+            joinpath('test_acasclient', '1_1_Generic.xlsx')
+        files = self.client.upload_files([test_003_upload_file_file])
+        self.assertIn('files', files)
+        self.assertIn('name', files['files'][0])
+        self.assertIn('originalName', files['files'][0])
+        self.assertEqual(files['files'][0]["originalName"], '1_1_Generic.xlsx')
+
+    def test_005_register_sdf_request(self):
+        """Test register sdf request."""
+        test_012_upload_file_file = Path(__file__).resolve().parent\
+            .joinpath('test_acasclient', 'test_012_register_sdf.sdf')
+        files = self.client.upload_files([test_012_upload_file_file])
+        request = {
+            "fileName": files['files'][0]["name"],
+            "userName": "bob",
+            "mappings": [
+                {
+                    "dbProperty": "Parent Common Name",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Name"
+                },
+                {
+                    "dbProperty": "Parent Corp Name",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Corporate ID"
+                },
+                {
+                    "dbProperty": "Lot Amount",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Amount Prepared"
+                },
+                {
+                    "dbProperty": "Lot Amount Units",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Amount Units"
+                },
+                {
+                    "dbProperty": "Lot Color",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Appearance"
+                },
+                {
+                    "dbProperty": "Lot Synthesis Date",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Date Prepared"
+                },
+                {
+                    "dbProperty": "Lot Notebook Page",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Notebook"
+                },
+                {
+                    "dbProperty": "Lot Corp Name",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Corp Name"
+                },
+                {
+                    "dbProperty": "Lot Number",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Number"
+                },
+                {
+                    "dbProperty": "Lot Purity",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Purity"
+                },
+                {
+                    "dbProperty": "Lot Comments",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Register Comment"
+                },
+                {
+                    "dbProperty": "Lot Chemist",
+                    "defaultVal": "bob",
+                    "required": True,
+                    "sdfProperty": "Lot Scientist"
+                },
+                {
+                    "dbProperty": "Lot Solution Amount",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Solution Amount"
+                },
+                {
+                    "dbProperty": "Lot Solution Amount Units",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Solution Amount Units"
+                },
+                {
+                    "dbProperty": "Lot Supplier",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Source"
+                },
+                {
+                    "dbProperty": "Lot Supplier ID",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Source ID"
+                },
+                {
+                    "dbProperty": "CAS Number",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "CAS"
+                },
+                {
+                    "dbProperty": "Project",
+                    "defaultVal": "PROJ-00000001",
+                    "required": True,
+                    "sdfProperty": "Project Code Name"
+                },
+                {
+                    "dbProperty": "Parent Common Name",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Name"
+                },
+                {
+                    "dbProperty": "Parent Stereo Category",
+                    "defaultVal": "unknown",
+                    "required": True,
+                    "sdfProperty": None
+                },
+                {
+                    "dbProperty": "Parent Stereo Comment",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Structure Comment"
+                },
+                {
+                    "dbProperty": "Lot Is Virtual",
+                    "defaultVal": "False",
+                    "required": False,
+                    "sdfProperty": "Lot Is Virtual"
+                },
+                {
+                    "dbProperty": "Lot Supplier Lot",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Sample ID2"
+                },
+                {
+                    "dbProperty": "Lot Salt Abbrev",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Salt Name"
+                },
+                {
+                    "dbProperty": "Lot Salt Equivalents",
+                    "defaultVal": None,
+                    "required": False,
+                    "sdfProperty": "Lot Salt Equivalents"
+                }
+            ]
+
+        }
+        response = self.client.register_sdf_request(request)
+        self.assertIn('reportFiles', response[0])
+        self.assertIn('summary', response[0])
+        self.assertIn('Registration completed', response[0]['summary'])
+
+    def test_006_register_sdf(self):
+        """Test register sdf."""
+        test_012_upload_file_file = Path(__file__).resolve().parent.\
+            joinpath('test_acasclient', 'test_012_register_sdf.sdf')
+        mappings = [
+            {
+                "dbProperty": "Parent Common Name",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Name"
+            },
+            {
+                "dbProperty": "Parent Corp Name",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Corporate ID"
+            },
+            {
+                "dbProperty": "Lot Amount",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Amount Prepared"
+            },
+            {
+                "dbProperty": "Lot Amount Units",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Amount Units"
+            },
+            {
+                "dbProperty": "Lot Color",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Appearance"
+            },
+            {
+                "dbProperty": "Lot Synthesis Date",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Date Prepared"
+            },
+            {
+                "dbProperty": "Lot Notebook Page",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Notebook"
+            },
+            {
+                "dbProperty": "Lot Corp Name",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Corp Name"
+            },
+            {
+                "dbProperty": "Lot Number",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Number"
+            },
+            {
+                "dbProperty": "Lot Purity",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Purity"
+            },
+            {
+                "dbProperty": "Lot Comments",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Register Comment"
+            },
+            {
+                "dbProperty": "Lot Chemist",
+                "defaultVal": "bob",
+                "required": True,
+                "sdfProperty": "Lot Scientist"
+            },
+            {
+                "dbProperty": "Lot Solution Amount",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Solution Amount"
+            },
+            {
+                "dbProperty": "Lot Solution Amount Units",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Solution Amount Units"
+            },
+            {
+                "dbProperty": "Lot Supplier",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Source"
+            },
+            {
+                "dbProperty": "Lot Supplier ID",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Source ID"
+            },
+            {
+                "dbProperty": "CAS Number",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "CAS"
+            },
+            {
+                "dbProperty": "Project",
+                "defaultVal": "PROJ-00000001",
+                "required": True,
+                "sdfProperty": "Project Code Name"
+            },
+            {
+                "dbProperty": "Parent Common Name",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Name"
+            },
+            {
+                "dbProperty": "Parent Stereo Category",
+                "defaultVal": "unknown",
+                "required": True,
+                "sdfProperty": None
+            },
+            {
+                "dbProperty": "Parent Stereo Comment",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Structure Comment"
+            },
+            {
+                "dbProperty": "Lot Is Virtual",
+                "defaultVal": "False",
+                "required": False,
+                "sdfProperty": "Lot Is Virtual"
+            },
+            {
+                "dbProperty": "Lot Supplier Lot",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Sample ID2"
+            },
+            {
+                "dbProperty": "Lot Salt Abbrev",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Salt Name"
+            },
+            {
+                "dbProperty": "Lot Salt Equivalents",
+                "defaultVal": None,
+                "required": False,
+                "sdfProperty": "Lot Salt Equivalents"
+            }
+        ]
+
+        response = self.client.register_sdf(test_012_upload_file_file, "bob",
+                                            mappings)
+        self.assertIn('report_files', response)
+        self.assertIn('summary', response)
+        self.assertIn('Registration completed', response['summary'])
+
+    def test_007_cmpd_search_request(self):
+        """Test cmpd search request."""
+
+        searchRequest = {
+            "corpNameList": "",
+            "corpNameFrom": "",
+            "corpNameTo": "",
+            "aliasContSelect": "contains",
+            "alias": "",
+            "dateFrom": "",
+            "dateTo": "",
+            "searchType": "substructure",
+            "percentSimilarity": 90,
+            "chemist": "anyone",
+            "maxResults": 100,
+            "molStructure": (
+                "NSC 1390\n"
+                "\n"
+                "\n"
+                " 10 11  0  0  0  0  0  0  0  0999 V2000\n"
+                "   -4.4591   -4.9405    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -3.1600   -2.6905    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -3.1600   -7.1905    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -0.4344   -2.9770    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "    0.4473   -4.1905    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -1.8610   -3.4405    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -1.8610   -4.9405    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -3.1600   -5.6905    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -0.4344   -5.4040    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -4.4591   -3.4405    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "  1  8  1  0  0  0  0\n"
+                "  1 10  1  0  0  0  0\n"
+                "  2 10  2  0  0  0  0\n"
+                "  2  6  1  0  0  0  0\n"
+                "  3  8  2  0  0  0  0\n"
+                "  4  5  1  0  0  0  0\n"
+                "  4  6  1  0  0  0  0\n"
+                "  5  9  2  0  0  0  0\n"
+                "  6  7  2  0  0  0  0\n"
+                "  7  8  1  0  0  0  0\n"
+                "  7  9  1  0  0  0  0\n"
+                "M  END")
+        }
+        search_results = self.client.\
+            cmpd_search_request(searchRequest)
+        self.assertGreater(len(search_results["foundCompounds"]), 0)
+
+        searchRequest = {
+            "molStructure": (
+                "NSC 1390\n"
+                "\n"
+                "\n"
+                " 10 11  0  0  0  0  0  0  0  0999 V2000\n"
+                "   -4.4591   -4.9405    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -3.1600   -2.6905    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -3.1600   -7.1905    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -0.4344   -2.9770    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "    0.4473   -4.1905    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -1.8610   -3.4405    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -1.8610   -4.9405    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -3.1600   -5.6905    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -0.4344   -5.4040    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -4.4591   -3.4405    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "  1  8  1  0  0  0  0\n"
+                "  1 10  1  0  0  0  0\n"
+                "  2 10  2  0  0  0  0\n"
+                "  2  6  1  0  0  0  0\n"
+                "  3  8  2  0  0  0  0\n"
+                "  4  5  1  0  0  0  0\n"
+                "  4  6  1  0  0  0  0\n"
+                "  5  9  2  0  0  0  0\n"
+                "  6  7  2  0  0  0  0\n"
+                "  7  8  1  0  0  0  0\n"
+                "  7  9  1  0  0  0  0\n"
+                "M  END"),
+        }
+        search_results = self.client.\
+            cmpd_search_request(searchRequest)
+        self.assertGreater(len(search_results["foundCompounds"]), 0)
+
+    def test_008_cmpd_search(self):
+        """Test cmpd search request."""
+
+        molStructure = (
+                "NSC 1390\n"
+                "\n"
+                "\n"
+                " 10 11  0  0  0  0  0  0  0  0999 V2000\n"
+                "   -4.4591   -4.9405    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -3.1600   -2.6905    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -3.1600   -7.1905    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -0.4344   -2.9770    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "    0.4473   -4.1905    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -1.8610   -3.4405    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -1.8610   -4.9405    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -3.1600   -5.6905    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -0.4344   -5.4040    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "   -4.4591   -3.4405    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                "  1  8  1  0  0  0  0\n"
+                "  1 10  1  0  0  0  0\n"
+                "  2 10  2  0  0  0  0\n"
+                "  2  6  1  0  0  0  0\n"
+                "  3  8  2  0  0  0  0\n"
+                "  4  5  1  0  0  0  0\n"
+                "  4  6  1  0  0  0  0\n"
+                "  5  9  2  0  0  0  0\n"
+                "  6  7  2  0  0  0  0\n"
+                "  7  8  1  0  0  0  0\n"
+                "  7  9  1  0  0  0  0\n"
+                "M  END")
+        search_results = self.client.\
+            cmpd_search(molStructure=molStructure)
+        self.assertGreater(len(search_results["foundCompounds"]), 0)
+
+    def test_009_export_cmpd_search_results(self):
+        """Test export cmpd search results."""
+        search_results = {
+            "foundCompounds": [
+                {
+                    "lotIDs": [
+                        {
+                            "corpName": "CMPD-0000001-001"
+                        }
+                    ],
+                }
+            ]
+        }
+        # Full search results possibilities
+        # search_results = {
+        #     "foundCompounds": [
+        #         {
+        #             "corpName": "CMPD-0000001",
+        #             "corpNameType": "Parent",
+        #             "lotIDs": [
+        #                 {
+        #                     "buid": 0,
+        #                     "corpName": "CMPD-0000001-001",
+        #                     "lotNumber": 1,
+        #                     "registrationDate": "01/29/2020",
+        #                     "synthesisDate": "01/29/2020"
+        #                 }
+        #             ],
+        #             "molStructure": "MOLFILE STRUCTURE"
+        #             "parentAliases": [],
+        #             "stereoCategoryName": "Achiral",
+        #             "stereoComment": ""
+        #         }
+        #     ],
+        #     "lotsWithheld": False
+        # }
+        search_results_export = self.client.\
+            export_cmpd_search_results(search_results)
+        self.assertIn('reportFilePath', search_results_export)
+        self.assertIn('summary', search_results_export)
+
+    def test_010_export_cmpd_search_results_get_file(self):
+        """Test export cmpd search results get file."""
+        search_results = {
+            "foundCompounds": [
+                {
+                    "lotIDs": [
+                        {
+                            "corpName": "CMPD-0000001-001"
+                        }
+                    ],
+                }
+            ]
+        }
+        search_results_export = self.client.\
+            export_cmpd_search_results(search_results)
+        self.assertIn('reportFilePath', search_results_export)
+        self.assertIn('summary', search_results_export)
+        search_results_export = self.client.\
+            get_file(search_results_export['reportFilePath'])
+        print(search_results_export)
+
+    def test_011_get_sdf_file_for_lots(self):
+        """Test get sdf file for lots."""
+        search_results_export = self.client.\
+            get_sdf_file_for_lots(["CMPD-0000001-001"])
+        self.assertIn('content', search_results_export)
+        content = str(search_results_export['content'])
+        self.assertIn('<Parent Corp Name>\\nCMPD-0000001', content)
+        self.assertIn('<Lot Corp Name>\\nCMPD-0000001-001', content)
+        self.assertIn('<Project>\\nPROJ-00000001', content)
+        self.assertIn('<Parent Stereo Category>\\nunknown', content)
+        self.assertIn('content-type', search_results_export)
+        self.assertIn('name', search_results_export)
+        self.assertIn('content-length', search_results_export)
+        self.assertIn('last-modified', search_results_export)
+
+    def test_012_write_sdf_file_for_lots(self):
+        """Test get sdf file for lots."""
+        out_file_path = self.client.\
+            write_sdf_file_for_lots(["CMPD-0000001-001"], Path(self.tempdir))
+        self.assertTrue(out_file_path.exists())
+        out_file_path = self.client\
+            .write_sdf_file_for_lots(["CMPD-0000001-001"],
+                                     Path(self.tempdir, "output.sdf"))
+        self.assertTrue(out_file_path.exists())
+        self.assertEqual('output.sdf', out_file_path.name)
+
+    def test_013_experiment_loader_request(self):
+        """Test experiment loader request."""
+        data_file_to_upload = Path(__file__).\
+            resolve().parent.joinpath('test_acasclient', '1_1_Generic.xlsx')
+        files = self.client.upload_files([data_file_to_upload])
+        request = {"user": "bob",
+                   "fileToParse": files['files'][0]["name"],
+                   "reportFile": "",
+                   "imagesFile": None,
+                   "dryRunMode": True}
+        response = self.client.experiment_loader_request(request)
+        self.assertIn('results', response)
+        self.assertIn('errorMessages', response)
+        self.assertIn('hasError', response)
+        self.assertIn('hasWarning', response)
+        self.assertIn('transactionId', response)
+        self.assertIsNone(response['transactionId'])
+        request = {"user":
+                   "bob",
+                   "fileToParse": files['files'][0]["name"],
+                   "reportFile": "", "imagesFile": None,
+                   "dryRunMode": False}
+        response = self.client.experiment_loader_request(request)
+        self.assertIn('transactionId', response)
+        self.assertIsNotNone(response['transactionId'])
+
+    def test_014_experiment_loader(self):
+        """Test experiment loader."""
+        data_file_to_upload = Path(__file__).resolve()\
+            .parent.joinpath('test_acasclient', '1_1_Generic.xlsx')
+        response = self.client.\
+            experiment_loader(data_file_to_upload, "bob", True)
+        self.assertIn('results', response)
+        self.assertIn('errorMessages', response)
+        self.assertIn('hasError', response)
+        self.assertIn('hasWarning', response)
+        self.assertIn('transactionId', response)
+        self.assertIsNone(response['transactionId'])
+        response = self.client.\
+            experiment_loader(data_file_to_upload, "bob", False)
+        self.assertIn('transactionId', response)
+        self.assertIsNotNone(response['transactionId'])
+
+    def test_015_get_protocols_by_label(self):
+        """Test get protocols by label"""
+        protocols = self.client.get_protocols_by_label("Test Protocol")
+        self.assertGreater(len(protocols), 0)
+        self.assertIn('codeName', protocols[0])
+        self.assertIn('lsLabels', protocols[0])
+        self.assertEqual(protocols[0]["lsLabels"][0]["labelText"],
+                         "Test Protocol")
+        fakeProtocols = self.client.get_protocols_by_label("Fake Protocol")
+        self.assertEqual(len(fakeProtocols), 0)
+
+    def test_016_get_experiments_by_protocol_code(self):
+        """Test get experiments by protocol code."""
+        protocols = self.client.get_protocols_by_label("Test Protocol")
+        experiments = self.client.\
+            get_experiments_by_protocol_code(protocols[0]["codeName"])
+        self.assertGreater(len(experiments), 0)
+        self.assertIn('codeName', experiments[0])
+        self.assertIn('lsLabels', experiments[0])
+        self.assertEqual(experiments[0]["lsLabels"][0]["labelText"],
+                         "Test Experiment")
+        experiments = self.client.\
+            get_experiments_by_protocol_code("FAKECODE")
+        self.assertIsNone(experiments)
+
+    def test_017_get_experiment_by_code(self):
+        """Test get experiment by code."""
+        experiment = self.client.get_experiment_by_code("EXPT-00000001")
+        self.assertIn('codeName', experiment)
+        self.assertIn('lsLabels', experiment)
+        experiment = self.client.get_experiment_by_code("FAKECODE")
+        self.assertIsNone(experiment)
+
+    def test_018_get_source_file_for_experient_code(self):
+        """Test get source file for experiment code."""
+        source_file = self.client.\
+            get_source_file_for_experient_code("EXPT-00000001")
+        self.assertIn('content', source_file)
+        self.assertIn('content-type', source_file)
+        self.assertIn('name', source_file)
+        self.assertIn('content-length', source_file)
+        self.assertIn('last-modified', source_file)
+        source_file = self.client.\
+            get_source_file_for_experient_code("FAKECODE")
+        self.assertIsNone(source_file)
+
+    def test_019_write_source_file_for_experient_code(self):
+        """Test get source file for experiment code."""
+        source_file_path = self.client.\
+            write_source_file_for_experient_code("EXPT-00000001", self.tempdir)
+        self.assertTrue(source_file_path.exists())
+
+    def test_020_get_meta_lot(self):
+        """Test get meta lot."""
+        meta_lot = self.client.\
+            get_meta_lot('CMPD-0000001-001')
+        self.assertIsNotNone(meta_lot)
+        self.assertEqual(meta_lot['lot']['corpName'], 'CMPD-0000001-001')
+
+    def test_021_experiment_search(self):
+        """Test experiment generic search."""
+        results = self.client.\
+            experiment_search('EXPT')
+        self.assertIsNotNone(results)
+        self.assertGreater(len(results), 0)
+        self.assertIn('codeName', results[0])
+
+    def test_022_get_cmpdreg_bulk_load_files(self):
+        """Test get cmpdreg bulk load files."""
+        results = self.client.\
+            get_cmpdreg_bulk_load_files()
+        self.assertIsNotNone(results)
+        self.assertGreater(len(results), 0)
+        self.assertIn('fileDate', results[0])
+
+    def test_023_check_cmpdreg_bulk_load_file_dependency(self):
+        """Test cmpdreg bulk load file dependency."""
+        files = self.client.\
+            get_cmpdreg_bulk_load_files()
+        results = self.client.\
+            check_cmpdreg_bulk_load_file_dependency(-1)
+        self.assertIsNone(results)
+
+        results = self.client.\
+            check_cmpdreg_bulk_load_file_dependency(files[0]["id"])
+        self.assertIsNotNone(results)
+        self.assertIn('canPurge', results)
+        self.assertIn('summary', results)
+
+    def test_024_purge_cmpdreg_bulk_load_file(self):
+        """Test cmpdreg bulk load file dependency."""
+
+        results = self.client.\
+            purge_cmpdreg_bulk_load_file(-1)
+        self.assertIsNone(results)
+
+        test_012_upload_file_file = Path(__file__).resolve().parent\
+            .joinpath('test_acasclient', 'test_012_register_sdf.sdf')
+        mappings = [{
+                        "dbProperty": "Parent Stereo Category",
+                        "defaultVal": "unknown",
+                        "required": True,
+                        "sdfProperty": None
+                    }]
+        registration_result = self.client.register_sdf(test_012_upload_file_file, "bob",
+                                                       mappings)
+        self.assertIn('2 new lots', registration_result['summary'])
+        # not currently easy to look up a bulk load files so we will just purge the latest one
+        # get all bulk load files and then find the latest one
+        files = self.client.\
+            get_cmpdreg_bulk_load_files()
+        for index, file in enumerate(files):
+            if index == 0:
+                file_to_purge = file
+            else:
+                if file['fileDate'] > file_to_purge['fileDate']:
+                    file_to_purge = file
+
+        # purge the bulk load file
+        results = self.client.\
+            purge_cmpdreg_bulk_load_file(file_to_purge["id"])
+        self.assertIn('summary', results)
+        self.assertIn('Successfully purged file', results['summary'])
+        self.assertIn('success', results)
+        self.assertTrue(results['success'])
+
+    def test_025_delete_experiment(self):
+        """Test delete experiment."""
+        data_file_to_upload = Path(__file__).resolve()\
+            .parent.joinpath('test_acasclient', '1_1_Generic.xlsx')
+        response = self.client.\
+            experiment_loader(data_file_to_upload, "bob", False)
+        self.assertIn('transactionId', response)
+        self.assertIsNotNone(response['transactionId'])
+        experiment_code = response['results']['experimentCode']
+        response = self.client.\
+            delete_experiment(experiment_code)
+        self.assertIsNotNone(response)
+        self.assertIn('codeValue', response)
+        self.assertEqual('deleted', response['codeValue'])
+        experiment = self.client.get_experiment_by_code(experiment_code)
+        self.assertIsNotNone(experiment)
+        self.assertTrue(experiment['ignored'])
+        experiment_status = acasclient.\
+            get_entity_value_by_state_type_kind_value_type_kind(
+                experiment,
+                "metadata",
+                "experiment metadata",
+                "codeValue",
+                "experiment status")
+        self.assertIn('codeValue', experiment_status)
+        self.assertEqual('deleted', experiment_status['codeValue'])
+
+    def test_027_get_ls_thing(self):
+        ls_thing = self.client.get_ls_thing("project",
+                                            "project",
+                                            "PROJ-00000001")
+        self.assertIn('codeName', ls_thing)
+        self.assertEqual("PROJ-00000001", ls_thing["codeName"])
+        ls_thing = self.client.get_ls_thing("project",
+                                            "project",
+                                            "FAKE")
+        self.assertIsNone(ls_thing)
+
+    def test_026_save_ls_thing(self):
+        code = str(uuid.uuid4())
+        ls_thing = create_project_thing(code)
+        saved_ls_thing = self.client.save_ls_thing(ls_thing)
+        self.assertIn('codeName', saved_ls_thing)
+        self.assertEqual(code, saved_ls_thing["codeName"])
+
+    def test_027_get_ls_things_by_codes(self):
+        codes = []
+        for n in range(3):
+            code = str(uuid.uuid4())
+            ls_thing = create_project_thing(code)
+            self.client.save_ls_thing(ls_thing)
+            codes.append(ls_thing["codeName"])
+
+        ls_things = self.client.get_ls_things_by_codes("project",
+                                                       "project",
+                                                       codes)
+        self.assertEqual(len(ls_things), len(codes))
+        self.assertIn('codeName', ls_things[0])
+        self.assertIn(ls_things[0]['codeName'], codes)
+
+    def test_028_save_ls_thing_list(self):
+        ls_things = []
+        for n in range(3):
+            code = str(uuid.uuid4())
+            ls_things.append(create_project_thing(code))
+
+        saved_ls_things = self.client.save_ls_thing_list(ls_things)
+        self.assertEqual(len(saved_ls_things), len(ls_things))
+        self.assertIn('codeName', saved_ls_things[0])
+
+    def test_029_update_ls_thing_list(self):
+        ls_things = []
+        new_codes = []
+        for n in range(3):
+            code = str(uuid.uuid4())
+            ls_thing = create_project_thing(code)
+            saved_thing = self.client.save_ls_thing(ls_thing)
+            new_code = str(uuid.uuid4())
+            new_codes.append(new_code)
+            saved_thing["codeName"] = new_code
+            ls_things.append(saved_thing)
+
+        updated_ls_things = self.client.update_ls_thing_list(ls_things)
+        self.assertEqual(len(updated_ls_things), len(ls_things))
+        self.assertIn('codeName', updated_ls_things[0])
+
+    def test_030_get_thing_codes_by_labels(self):
+        labels = []
+        for n in range(3):
+            label = str(uuid.uuid4())
+            ls_thing = create_project_thing(label)
+            self.client.save_ls_thing(ls_thing)
+            labels.append(label)
+
+        results = self.client.get_thing_codes_by_labels('project',
+                                                        'project',
+                                                        labels)
+        self.assertEqual(len(results), len(labels))
+        self.assertIn('preferredName', results[0])
+
+    def test_031_get_saved_entity_codes(self):
+        labels = []
+        for n in range(3):
+            label = str(uuid.uuid4())
+            ls_thing = create_project_thing(label)
+            self.client.save_ls_thing(ls_thing)
+            labels.append(label)
+        labels.append("FAKE")
+        results = self.client.get_saved_entity_codes('project',
+                                                        'project',
+                                                        labels)
+        self.assertEqual(len(results[0]), len(labels)-1)
+        self.assertEqual(len(results[1]), 1)
+
+    def test_032_advanced_search_ls_things(self):
+        codes = []
+        for n in range(3):
+            code = str(uuid.uuid4())
+            ls_thing = create_project_thing(code)
+            self.client.save_ls_thing(ls_thing)
+            codes.append(code)
+
+        value_listings = [{
+                    "stateType": "metadata",
+                    "stateKind": "project metadata",
+                    "valueType": "codeValue",
+                    "valueKind": "status",
+                    "operator": "="
+                }]
+        ls_things = self.client\
+            .advanced_search_ls_things('project', 'project', 'active',
+                                       value_listings=value_listings,
+                                       codes_only=False,
+                                       max_results=1000)
+        self.assertGreaterEqual(len(ls_things), 3)
+        self.assertIn('codeName', ls_things[0])
+
+        return_codes = self.client\
+            .advanced_search_ls_things('project', 'project', 'active',
+                                       value_listings=value_listings,
+                                       codes_only=True,
+                                       max_results=1000)
+        self.assertIn(codes[0], return_codes)
+
+    def test_033_get_all_lots(self):
+        """Test get all lots request."""
+
+        all_lots = self.client.get_all_lots()
+        self.assertGreater(len(all_lots), 0)
+        self.assertIn('id', all_lots[0])
+        self.assertIn('lotCorpName', all_lots[0])
+        self.assertIn('lotNumber', all_lots[0])
+        self.assertIn('parentCorpName', all_lots[0])
+        self.assertIn('registrationDate', all_lots[0])
+        self.assertIn('project', all_lots[0])
