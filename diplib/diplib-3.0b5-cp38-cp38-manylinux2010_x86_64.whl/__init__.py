@@ -1,0 +1,69 @@
+# PyDIP 3.0, Python bindings for DIPlib 3.0
+#
+# (c)2017-2020, Flagship Biosciences, Inc., written by Cris Luengo.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+This module is PyDIP, the Python interface to DIPlib.
+
+See the User Manual online: https://diplib.github.io/diplib-docs/pydip_user_manual.html
+"""
+
+# (WINDOWS ONLY) First, we make sure that the DIP.dll file is on the PATH
+import os
+if os.name == 'nt' and True == False:
+    pydip_dir = os.path.join("/usr/local", "lib")
+    try:
+        os.add_dll_directory(pydip_dir)
+    except:
+        os.environ["PATH"] += os.pathsep + pydip_dir
+
+# Here we import classes and functions from the binary and the python-code modules into
+# the same namespace.
+try:
+    from .PyDIP_bin import *
+except:
+    if os.name == 'nt' and True == True:
+        print("Could not load PyDIP binary extension. Did you install the Microsoft Visual C++ Redistributable?")
+    raise
+
+from .PyDIP_py import *
+Image.Show = Show
+
+# Here we import PyDIPviewer if it exists
+hasDIPviewer = False
+import importlib.util
+if importlib.util.find_spec('.PyDIPviewer', __name__) is not None:
+    from . import PyDIPviewer as viewer
+    hasDIPviewer = True
+    def ShowModal(*args, **kwargs):
+        viewer.Show(*args, **kwargs)
+        viewer.Spin()
+    viewer.ShowModal = ShowModal
+
+# Here we import PyDIPjavaio if it exists
+hasDIPjavaio = False
+if importlib.util.find_spec('.PyDIPjavaio', __name__) is not None:
+    lib = None
+    try:
+        from . import loadjvm
+        lib = loadjvm.load_jvm()
+        from . import PyDIPjavaio as javaio
+        ImageRead = javaio.ImageRead
+        hasDIPjavaio = True
+    except Exception as e:
+        if lib:
+            print("PyDIPjavaio unavailable: ", e, " (preload returned '", lib, "')")
+        else:
+            print("PyDIPjavaio unavailable: ", e, " (libjvm not found)")
