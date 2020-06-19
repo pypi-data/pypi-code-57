@@ -1,0 +1,35 @@
+#!/usr/bin/python
+#
+# Copyright 2018-2020 Polyaxon, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from polyaxon import pkg
+
+VERSION_V1 = "v1"
+API_V1 = "api/{}".format(VERSION_V1)
+STREAMS_V1 = "streams/{}".format(VERSION_V1)
+SERVICES_V1 = "services/{}".format(VERSION_V1)
+REWRITE_SERVICES_V1 = "rewrite-services/{}".format(VERSION_V1)
+WS_V1 = "ws/{}".format(VERSION_V1)
+AUTH_V1 = "auth/{}".format(VERSION_V1)
+POLYAXON_CLOUD = "cloud.polyaxon.com"
+POLYAXON_CLOUD_HOST = "https://cloud.polyaxon.com"
+POLYAXON_VERSIONS_HOST = "https://versions.polyaxon.com/?v={}".format(pkg.VERSION)
+REGISTER = (
+    "{url}&cid={cluster_uuid}&t=pageview&"
+    "dp=%2Fplatform"
+    "%2F{created_at}%2F{version}&"
+    "ds=app&z={cluster_uuid}&"
+    "an=polyaxon&aid=com.polyaxon.app&av={version}"
+)
