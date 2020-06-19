@@ -1,0 +1,2 @@
+from djangoarticle.managers.CategoryModelSchemeManager import CategoryModelSchemeManager
+from djangoarticle.managers.ArticleModelSchemeManager import ArticleModelSchemeManager
