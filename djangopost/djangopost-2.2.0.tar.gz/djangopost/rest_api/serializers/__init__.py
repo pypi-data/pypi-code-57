@@ -1,0 +1,2 @@
+from djangopost.rest_api.serializers.CategorySerializer import CategorySerializer
+from djangopost.rest_api.serializers.ArticleSerializer import ArticleSerializer

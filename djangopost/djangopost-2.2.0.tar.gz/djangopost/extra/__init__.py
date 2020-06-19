@@ -1,0 +1,1 @@
+from djangopost.extra.ImageUploadDestination import ImageUploadDestination

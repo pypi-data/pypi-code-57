@@ -1,0 +1,2 @@
+from djangopost.querysets.ArticleModelQuerySet import ArticleModelQuerySet
+from djangopost.querysets.CategoryModelQuerySet import CategoryModelQuerySet
