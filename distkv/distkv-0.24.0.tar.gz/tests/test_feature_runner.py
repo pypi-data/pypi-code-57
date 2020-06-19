@@ -1,0 +1,83 @@
+import pytest
+import trio
+import anyio
+import time
+
+from .mock_mqtt import stdtest
+
+from .run import run
+
+from distkv.code import CodeRoot
+from distkv.runner import AnyRunnerRoot
+from distkv.errors import ErrorRoot
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+@pytest.mark.trio
+async def test_83_run(autojump_clock):  # pylint: disable=unused-argument
+    async with stdtest(args={"init": 123}, tocks=100) as st:
+        s, = st.s
+        h = p = None  # pylint
+        for h, p, *_ in s.ports:
+            if h[0] != ":":
+                break
+        async with st.client() as c:
+            await ErrorRoot.as_handler(c)
+            cr = await CodeRoot.as_handler(c)
+            r = await AnyRunnerRoot.as_handler(c, subpath=(), code=cr)
+            c._test_evt = anyio.create_event()
+            await cr.add(
+                "forty",
+                "two",
+                code="""\
+                c=_client
+                s=_self
+                await c._test_evt.set()
+                await s.setup_done()
+                await s.watch("test",4242)
+                async for msg in _info:
+                    if isinstance(msg, _cls.TimerMsg):
+                        return 42
+                    elif isinstance(msg, _cls.ChangeMsg) and msg.msg.value == 42:
+                        await s.timer(10)
+                """,
+                is_async=True,
+            )
+            ru = r.follow("foo", "test", create=True)
+            ru.code = ("forty", "two")
+            await ru.run_at(time.time() + 1)
+            logger.info("Start sleep")
+            rs = ru.state
+            with trio.fail_after(60):
+                await c._test_evt.wait()
+                await c.set("test",4242, value=13)
+                await trio.sleep(2)
+                assert not rs.stopped
+                await c.set("test",4242, value=42)
+                await trio.sleep(2)
+                assert not rs.stopped
+                await trio.sleep(10)
+                assert rs.stopped
+
+            await run(
+                "-vvv",
+                "client",
+                "-h",
+                h,
+                "-p",
+                p,
+                "data",
+                "get",
+                "-rd_",
+                do_stdout=False,
+            )
+            await trio.sleep(11)
+
+            logger.info("End sleep")
+
+            assert rs.started > 0
+            assert rs.stopped > 0
+            assert rs.backoff == 0
+            assert rs.result == 42
