@@ -1,0 +1,4 @@
+from djangotags.rest_api.viewsets.TagDestroyViewset import TagDestroyViewset
+from djangotags.rest_api.viewsets.TagListViewset import TagListViewset
+from djangotags.rest_api.viewsets.TagRetrieveViewset import TagRetrieveViewset
+from djangotags.rest_api.viewsets.TagUpdateViewset import TagUpdateViewset

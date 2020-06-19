@@ -1,0 +1,1 @@
+from djangotags.rest_api.serializers.TagSerializer import TagSerializer

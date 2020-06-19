@@ -1,0 +1,1 @@
+from djangotags.views.TaggitTagDetailView import TaggitTagDetailView
