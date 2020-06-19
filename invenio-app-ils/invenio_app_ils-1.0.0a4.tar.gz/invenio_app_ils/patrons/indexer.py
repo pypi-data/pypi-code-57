@@ -1,0 +1,109 @@
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2019-2020 CERN.
+#
+# invenio-app-ils is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+
+"""Patron indexer APIs."""
+
+from datetime import datetime
+
+from celery import shared_task
+from elasticsearch import VERSION as ES_VERSION
+from flask import current_app
+from invenio_circulation.pidstore.pids import CIRCULATION_LOAN_PID_TYPE
+from invenio_circulation.proxies import current_circulation
+from invenio_circulation.search.api import search_by_patron_pid
+from invenio_indexer.api import RecordIndexer
+
+from invenio_app_ils.acquisition.api import ORDER_PID_TYPE
+from invenio_app_ils.acquisition.proxies import current_ils_acq
+from invenio_app_ils.ill.api import BORROWING_REQUEST_PID_TYPE
+from invenio_app_ils.ill.proxies import current_ils_ill
+from invenio_app_ils.indexer import ReferencedRecordsIndexer
+from invenio_app_ils.pidstore.pids import PATRON_PID_TYPE
+
+lt_es7 = ES_VERSION[0] < 7
+
+
+def get_loans(patron_pid):
+    """Get referenced loans."""
+    referenced = []
+    loan_record_cls = current_circulation.loan_record_cls
+    for hit in search_by_patron_pid(patron_pid=patron_pid).scan():
+        loan = loan_record_cls.get_record_by_pid(hit["pid"])
+        referenced.append(
+            dict(pid_type=CIRCULATION_LOAN_PID_TYPE, record=loan)
+        )
+    return referenced
+
+
+def get_acquisition_orders(patron_pid):
+    """Get referenced acquisition orders."""
+    referenced = []
+    order_record_cls = current_ils_acq.order_record_cls
+    order_search_cls = current_ils_acq.order_search_cls
+    search = order_search_cls().search_by_patron_pid(patron_pid)
+    for hit in search.scan():
+        order = order_record_cls.get_record_by_pid(hit["pid"])
+        referenced.append(dict(pid_type=ORDER_PID_TYPE, record=order))
+    return referenced
+
+
+def get_ill_borrowing_requests(patron_pid):
+    """Get referenced ILL borrowing requests."""
+    referenced = []
+    brw_req_record_cls = current_ils_ill.borrowing_request_record_cls
+    brw_req_search_cls = current_ils_ill.borrowing_request_search_cls
+    search = brw_req_search_cls().search_by_patron_pid(patron_pid)
+    for hit in search.scan():
+        brw_req = brw_req_record_cls.get_record_by_pid(hit["pid"])
+        referenced.append(
+            dict(pid_type=BORROWING_REQUEST_PID_TYPE, record=brw_req)
+        )
+    return referenced
+
+
+@shared_task(ignore_result=True)
+def index_referenced_records(patron):
+    """Index referenced records."""
+    indexer = ReferencedRecordsIndexer()
+
+    patron_pid = patron["pid"]
+    indexed = dict(pid_type=PATRON_PID_TYPE, record=patron)
+
+    indexer.index(indexed, get_loans(patron_pid))
+    indexer.index(indexed, get_acquisition_orders(patron_pid))
+    indexer.index(indexed, get_ill_borrowing_requests(patron_pid))
+
+
+class PatronIndexer(RecordIndexer):
+    """Indexer class for `Patron`."""
+
+    @staticmethod
+    def _prepare_record(record, index, doc_type, arguments=None, **kwargs):
+        """Prepare record data for indexing.
+
+        :param record: The record to prepare.
+        :param index: The Elasticsearch index.
+        :param doc_type: The Elasticsearch document type.
+        :returns: The record metadata.
+        """
+        data = record.dumps()
+        return data
+
+    def record_to_index(self, record):
+        """Get index/doc_type given a record.
+
+        :param record: The record where to look for the information.
+        :returns: A tuple (index, doc_type).
+        """
+        doc_type = record._doc_type if lt_es7 else "_doc"
+        return (record._index, doc_type)
+
+    def index(self, patron, arguments=None, **kwargs):
+        """Index a Patron."""
+        super().index(patron)
+        eta = datetime.utcnow() + current_app.config["ILS_INDEXER_TASK_DELAY"]
+        index_referenced_records.apply_async((patron,), eta=eta)
