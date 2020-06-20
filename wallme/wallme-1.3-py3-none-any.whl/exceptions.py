@@ -1,0 +1,3 @@
+﻿
+class WallmeException(Exception):
+	pass
