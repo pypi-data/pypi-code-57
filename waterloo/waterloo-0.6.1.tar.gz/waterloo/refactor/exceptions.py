@@ -1,0 +1,2 @@
+class Interrupt(Exception):
+    pass
