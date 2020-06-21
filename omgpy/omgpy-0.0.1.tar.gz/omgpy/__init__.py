@@ -1,0 +1,1 @@
+from .omg import OMG
