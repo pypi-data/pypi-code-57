@@ -1,0 +1,3 @@
+
+class UnmarshalError(Exception):
+    pass
