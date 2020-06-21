@@ -1,0 +1,2 @@
+def strongpw(pw):
+    pass
