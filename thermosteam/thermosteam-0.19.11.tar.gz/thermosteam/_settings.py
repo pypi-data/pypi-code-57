@@ -1,0 +1,95 @@
+# -*- coding: utf-8 -*-
+# BioSTEAM: The Biorefinery Simulation and Techno-Economic Analysis Modules
+# Copyright (C) 2020, Yoel Cortes-Pena <yoelcortes@gmail.com>
+# 
+# This module is under the UIUC open-source license. See 
+# github.com/BioSTEAMDevelopmentGroup/biosteam/blob/master/LICENSE.txt
+# for license details.
+"""
+"""
+import thermosteam as tmo
+
+__all__ = ('settings',)
+
+class Settings:
+    __slots__ = ('_thermo',
+                 '_phase_names',
+                 '_debug',
+    )
+    
+    def __init__(self):
+        self._thermo = None
+        self._debug = False
+        self._phase_names = {'s': 'Solid',
+                             'l': 'Liquid',
+                             'g': 'Gas',
+                             'S': 'SOLID',
+                             'L': 'LIQUID',
+                             'G': 'GAS'}
+    @property
+    def debug(self):
+        """[bool] If True, preventive assertions are run at runtime."""
+        return self._debug
+    @debug.setter
+    def debug(self, debug):
+        self._debug = bool(debug)
+    
+    @property
+    def phase_names(self):
+        """[dict] All phase definitions."""
+        return self._phase_names
+    
+    def get_default_thermo(self, thermo):
+        """
+        Return a default Thermo object.
+        If `thermo` is a Thermo object, return the same object.
+        """
+        if not thermo:
+            thermo = self.get_thermo()
+        return thermo
+    
+    def get_default_chemicals(self, chemicals):
+        """
+        Return a default CompiledChemicals object.
+        If `chemicals` is a Chemicals object, return the same object.
+        """
+        if isinstance(chemicals, tmo.Chemicals):
+            chemicals.compile()
+        elif not chemicals:
+            thermo = settings._thermo
+            assert thermo, "no available 'Chemicals' object"
+            chemicals = thermo.chemicals
+        else:
+            raise ValueError("chemicals must be a 'Chemicals' object")
+        return chemicals
+    
+    def get_default_mixture(self, mixture):
+        """
+        Return a default Mixture object.
+        If `mixture` is a Mixture object, return the same object.
+        """
+        if not mixture:
+            thermo = settings.thermo
+            assert thermo, ("no available 'Thermo' object; "
+                            "set settings.thermo first")
+            mixture = thermo.mixture
+        return mixture
+    
+    def get_thermo(self):
+        """Return a default Thermo object."""
+        thermo = self._thermo
+        assert thermo, ("no available 'Thermo' object; "
+                        "use settings.set_thermo")
+        return thermo
+    
+    def set_thermo(self, thermo):
+        """Set the default Thermo object. If `thermo` is not a Thermo object,
+        an attempt is made to convert it to one."""
+        if not isinstance(thermo, tmo.Thermo):
+            thermo = tmo.Thermo(thermo)
+        self._thermo = thermo
+    
+    def __repr__(self):
+        return "<Settings>"
+    
+settings = Settings()
