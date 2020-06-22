@@ -1,0 +1,2 @@
+class TagSetDecodeError(ValueError):
+    pass
