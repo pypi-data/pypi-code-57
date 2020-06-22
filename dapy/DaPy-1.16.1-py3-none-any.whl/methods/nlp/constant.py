@@ -1,0 +1,5 @@
+HEAD = '<HEAD>'
+END = '<END>'
+OOV = '<OOV>'
+WEB = '<WEB>'
+NUMBER = '<NUM>'
