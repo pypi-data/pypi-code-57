@@ -1,0 +1,443 @@
+import copy
+from typing import Any, Dict, List, Optional, Type, Union
+
+import yaml
+from allennlp.common import FromParams, Params
+from allennlp.data import TokenIndexer, Vocabulary
+from allennlp.modules import TextFieldEmbedder
+
+from biome.text.data import DataSource
+from . import vocabulary
+from .features import CharFeatures, WordFeatures
+from .featurizer import InputFeaturizer
+from .helpers import save_dict_as_yaml
+from .modules.encoders import Encoder
+from .modules.heads.task_head import TaskHeadConfiguration
+from .tokenizer import Tokenizer
+
+
+class FeaturesConfiguration(FromParams):
+    """Configures the input features of the `Pipeline`
+
+    Use this for defining the features to be used by the model, namely word and character embeddings.
+    
+    :::tip
+    If you do not pass in either of the parameters (`word` or `char`),
+    your pipeline will be setup with a default word feature (embedding_dim=50).
+    :::
+    
+    Example:
+    
+    ```python
+    word = WordFeatures(embedding_dim=100)
+    char = CharFeatures(embedding_dim=16, encoder={'type': 'gru'})
+    config = FeaturesConfiguration(word, char)
+    ```
+    
+    Parameters
+    ----------
+    word : `biome.text.features.WordFeatures`
+        The word feature configurations, see `WordFeatures`
+    char: `biome.text.features.CharFeatures`
+        The character feature configurations, see `CharFeatures`
+    """
+
+    __DEFAULT_CONFIG = WordFeatures(embedding_dim=50)
+
+    def __init__(
+        self, word: Optional[WordFeatures] = None, char: Optional[CharFeatures] = None,
+    ):
+        self.word = word or None
+        self.char = char or None
+
+        if not (word or char):
+            self.word = self.__DEFAULT_CONFIG
+
+    @classmethod
+    def from_params(
+        cls: Type["FeaturesConfiguration"], params: Params, **extras
+    ) -> "FeaturesConfiguration":
+
+        word = params.pop("word", None)
+        word = WordFeatures(**word.as_dict(quiet=True)) if word else None
+
+        char = params.pop("char", None)
+        char = CharFeatures(**char.as_dict(quiet=True)) if char else None
+
+        params.assert_empty("FeaturesConfiguration")
+        return cls(word=word, char=char)
+
+    @property
+    def keys(self) -> List[str]:
+        """Gets the keys of the features"""
+        return [key for key in vars(self)]
+
+    def compile_embedder(self, vocab: Vocabulary) -> TextFieldEmbedder:
+        """Creates the embedder based on the configured input features
+
+        Parameters
+        ----------
+        vocab: `Vocabulary`
+            The vocabulary for which to create the embedder
+
+        Returns
+        -------
+        embedder
+        """
+        configuration = self._make_allennlp_config()
+        if vocabulary.is_empty(vocab, namespaces=self.keys) and configuration.get(
+            "word"
+        ):
+            # We simplify embedder configuration for better load an blank pipeline which create the vocab
+            embedder_cfg = configuration["word"]["embedder"]
+            if "pretrained_file" in embedder_cfg:
+                embedder_cfg["pretrained_file"] = None
+        return TextFieldEmbedder.from_params(
+            Params(
+                {
+                    "token_embedders": {
+                        feature: config["embedder"]
+                        for feature, config in configuration.items()
+                    }
+                }
+            ),
+            vocab=vocab,
+        )
+
+    def compile_featurizer(self, tokenizer: Tokenizer) -> InputFeaturizer:
+        """Creates the featurizer based on the configured input features
+
+        :::tip
+        If you are creating configurations programmatically
+        use this method to check that you provided a valid configuration.
+        :::
+
+        Parameters
+        ----------
+        tokenizer: `Tokenizer`
+            Tokenizer used for this featurizer
+
+        Returns
+        -------
+        featurizer: `InputFeaturizer`
+            The configured `InputFeaturizer`
+        """
+        configuration = self._make_allennlp_config()
+
+        indexer = {
+            feature: TokenIndexer.from_params(Params(config["indexer"]))
+            for feature, config in configuration.items()
+        }
+        return InputFeaturizer(tokenizer, indexer=indexer)
+
+    def _make_allennlp_config(self) -> Dict[str, Any]:
+        """Returns a configuration dict compatible with allennlp
+
+        Returns
+        -------
+        config_dict
+        """
+        configuration = {
+            spec.namespace: spec.config for spec in [self.word, self.char] if spec
+        }
+
+        return copy.deepcopy(configuration)
+
+
+class TokenizerConfiguration(FromParams):
+    """Configures the `Tokenizer`
+
+    Parameters
+    ----------
+    lang
+        The [spaCy model used](https://spacy.io/api/tokenizer) for tokenization is language dependent.
+        For optimal performance, specify the language of your input data (default: "en").
+    max_sequence_length
+        Maximum length in characters for input texts truncated with `[:max_sequence_length]` after `TextCleaning`.
+    max_nr_of_sentences
+        Maximum number of sentences to keep when using `segment_sentences` truncated with `[:max_sequence_length]`.
+    text_cleaning
+        A `TextCleaning` configuration with pre-processing rules for cleaning up and transforming raw input text.
+    segment_sentences
+        Whether to segment input texts in to sentences using the default `SentenceSplitter` or
+        providing a specific configuration for a `SentenceSplitter`.
+    start_tokens
+        A list of token strings to the sequence before tokenized input text.
+    end_tokens
+        A list of token strings to the sequence after tokenized input text.
+    """
+
+    # note: It's important that it inherits from FromParas so that `Pipeline.from_pretrained()` works!
+    def __init__(
+        self,
+        lang: str = "en",
+        max_sequence_length: int = None,
+        max_nr_of_sentences: int = None,
+        text_cleaning: Optional[Dict[str, Any]] = None,
+        segment_sentences: Union[bool, Dict[str, Any]] = False,
+        start_tokens: Optional[List[str]] = None,
+        end_tokens: Optional[List[str]] = None,
+    ):
+        self.lang = lang
+        self.max_sequence_length = max_sequence_length
+        self.max_nr_of_sentences = max_nr_of_sentences
+        self.text_cleaning = text_cleaning
+        self.segment_sentences = segment_sentences
+        self.start_tokens = start_tokens
+        self.end_tokens = end_tokens
+
+
+class PipelineConfiguration(FromParams):
+    """Creates a `Pipeline` configuration
+
+    Parameters
+    ----------
+    name
+        The `name` for our pipeline
+    features
+        The input `features` to be used by the model pipeline. We define this using a `FeaturesConfiguration` object.
+    head
+        The `head` for the task, e.g., a LanguageModelling task, using a `TaskHeadConfiguration` object.
+    tokenizer
+        The `tokenizer` defined with a `TokenizerConfiguration` object.
+    encoder
+        The core text seq2seq `encoder` of our model using a `Seq2SeqEncoderConfiguration`
+    """
+
+    def __init__(
+        self,
+        name: str,
+        head: TaskHeadConfiguration,
+        features: FeaturesConfiguration = None,
+        tokenizer: Optional[TokenizerConfiguration] = None,
+        encoder: Optional[Encoder] = None,
+    ):
+        super(PipelineConfiguration, self).__init__()
+
+        self.name = name
+        self.head = head
+        self.tokenizer = tokenizer or TokenizerConfiguration()
+        self.features = features or FeaturesConfiguration()
+        self.encoder = encoder
+
+    @classmethod
+    def from_yaml(cls, path: str) -> "PipelineConfiguration":
+        """Creates a pipeline configuration from a config yaml file
+
+        Parameters
+        ----------
+        path
+            The path to a YAML configuration file
+
+        Returns
+        -------
+        pipeline_configuration
+        """
+        with open(path) as yaml_file:
+            config_dict = yaml.safe_load(yaml_file)
+
+        return cls.from_dict(config_dict)
+
+    @classmethod
+    def from_dict(cls, config_dict: dict) -> "PipelineConfiguration":
+        """Creates a pipeline configuration from a config dictionary
+
+        Parameters
+        ----------
+        config_dict
+            A configuration dictionary
+
+        Returns
+        -------
+        pipeline_configuration
+        """
+        return PipelineConfiguration.from_params(Params(config_dict))
+
+    def as_dict(self) -> Dict[str, Any]:
+        """Returns the configuration as dictionary
+
+        Returns
+        -------
+        config
+        """
+        config = {
+            "name": self.name,
+            "tokenizer": vars(self.tokenizer),
+            "features": vars(self.features),
+            "head": self.head.config,
+        }
+
+        if self.encoder:
+            config["encoder"] = self.encoder.config
+
+        return config
+
+    def to_yaml(self, path: str):
+        """Saves the pipeline configuration to a yaml formatted file
+
+        Parameters
+        ----------
+        path
+            Path to the output file
+        """
+        config_dict = copy.deepcopy(self.as_dict())
+        config_dict["features"]["word"] = (
+            config_dict["features"]["word"].to_dict()
+            if config_dict["features"]["word"] is not None
+            else None
+        )
+        config_dict["features"]["char"] = (
+            config_dict["features"]["char"].to_dict()
+            if config_dict["features"]["char"] is not None
+            else None
+        )
+
+        save_dict_as_yaml(config_dict, path)
+
+    def build_tokenizer(self) -> Tokenizer:
+        """Build the pipeline tokenizer"""
+        return Tokenizer(self.tokenizer)
+
+    def build_featurizer(self) -> InputFeaturizer:
+        """Creates the pipeline featurizer"""
+        return self.features.compile_featurizer(self.build_tokenizer())
+
+    def build_embedder(self, vocab: Vocabulary):
+        """Build the pipeline embedder for aiven dictionary"""
+        return self.features.compile_embedder(vocab)
+
+
+class TrainerConfiguration:
+    """Creates a `TrainerConfiguration`
+
+    Doc strings mainly provided by
+    [AllenNLP](https://docs.allennlp.org/master/api/training/trainer/#gradientdescenttrainer-objects)
+
+    Parameters
+    ----------
+    optimizer
+        [Pytorch optimizers](https://pytorch.org/docs/stable/optim.html)
+        that can be constructed via the AllenNLP configuration framework
+    validation_metric
+        Validation metric to measure for whether to stop training using patience
+        and whether to serialize an is_best model each epoch.
+        The metric name must be prepended with either "+" or "-",
+        which specifies whether the metric is an increasing or decreasing function.
+    patience
+        Number of epochs to be patient before early stopping:
+        the training is stopped after `patience` epochs with no improvement.
+        If given, it must be > 0. If `None`, early stopping is disabled.
+    num_epochs
+        Number of training epochs
+    cuda_device
+        An integer specifying the CUDA device to use for this process. If -1, the CPU is used.
+    grad_norm
+        If provided, gradient norms will be rescaled to have a maximum of this value.
+    grad_clipping
+        If provided, gradients will be clipped during the backward pass to have an (absolute) maximum of this value.
+        If you are getting `NaN`s in your gradients during training that are not solved by using grad_norm,
+        you may need this.
+    learning_rate_scheduler
+        If specified, the learning rate will be decayed with respect to this schedule at the end of each epoch
+        (or batch, if the scheduler implements the step_batch method).
+        If you use `torch.optim.lr_scheduler.ReduceLROnPlateau`, this will use the `validation_metric` provided
+        to determine if learning has plateaued.
+    momentum_scheduler
+        If specified, the momentum will be updated at the end of each batch or epoch according to the schedule.
+    moving_average
+        If provided, we will maintain moving averages for all parameters.
+        During training, we employ a shadow variable for each parameter, which maintains the moving average.
+        During evaluation, we backup the original parameters and assign the moving averages to corresponding parameters.
+        Be careful that when saving the checkpoint, we will save the moving averages of parameters.
+        This is necessary because we want the saved model to perform as well as the validated model if we load it later.
+        But this may cause problems if you restart the training from checkpoint.
+    batch_size
+        Size of the batch
+    cache_instances
+    in_memory_batches
+    data_bucketing
+    """
+
+    def __init__(
+        self,
+        optimizer: Dict[str, Any] = None,
+        validation_metric: str = "-loss",
+        patience: Optional[int] = 2,
+        num_epochs: int = 20,
+        cuda_device: int = -1,
+        grad_norm: Optional[float] = None,
+        grad_clipping: Optional[float] = None,
+        learning_rate_scheduler: Optional[Dict[str, Any]] = None,
+        momentum_scheduler: Optional[Dict[str, Any]] = None,
+        moving_average: Optional[Dict[str, Any]] = None,
+        batch_size: Optional[int] = 16,
+        cache_instances: bool = True,
+        in_memory_batches: int = 2,
+        data_bucketing: bool = True,
+    ):
+        self.optimizer = optimizer or {"type": "adam"}
+        self.validation_metric = validation_metric
+        self.patience = patience
+        self.num_epochs = num_epochs
+        self.cuda_device = cuda_device
+        self.grad_norm = grad_norm
+        self.grad_clipping = grad_clipping
+        self.learning_rate_scheduler = learning_rate_scheduler
+        self.momentum_scheduler = momentum_scheduler
+        self.moving_average = moving_average
+
+        # Data Iteration
+        self.batch_size = batch_size
+        self.data_bucketing = data_bucketing
+        self.cache_instances = cache_instances
+        self.in_memory_batches = in_memory_batches
+
+
+class VocabularyConfiguration:
+    """Configures a ``Vocabulary`` before it gets created from the data
+
+    Use this to configure a Vocabulary using specific arguments from `allennlp.data.Vocabulary``
+
+    See [AllenNLP Vocabulary docs](https://docs.allennlp.org/master/api/data/vocabulary/#vocabulary])
+
+    Parameters
+    ----------
+    sources: `List[DataSource]`
+        Datasource to be used for data creation
+    min_count: `Dict[str, int]`, optional (default=None)
+        Minimum number of appearances of a token to be included in the vocabulary.
+        The key in the dictionary refers to the namespace of the input feature.
+    max_vocab_size:  `Union[int, Dict[str, int]]`, optional (default=`None`)
+        Maximum number of tokens in the vocabulary
+    pretrained_files: `Optional[Dict[str, str]]`, optional
+        If provided, this map specifies the path to optional pretrained embedding files for each
+        namespace. This can be used to either restrict the vocabulary to only words which appear
+        in this file, or to ensure that any words in this file are included in the vocabulary
+        regardless of their count, depending on the value of `only_include_pretrained_words`.
+        Words which appear in the pretrained embedding file but not in the data are NOT included
+        in the Vocabulary.
+    only_include_pretrained_words: `bool`, optional (default=False)
+        Only include tokens present in pretrained_files
+    tokens_to_add: `Dict[str, int]`, optional
+        A list of tokens to add to the vocabulary, even if they are not present in the ``sources``
+    min_pretrained_embeddings: ``Dict[str, int]``, optional
+        Minimum number of lines to keep from pretrained_files, even for tokens not appearing in the sources.
+    """
+
+    def __init__(
+        self,
+        sources: List[DataSource],
+        min_count: Dict[str, int] = None,
+        max_vocab_size: Union[int, Dict[str, int]] = None,
+        pretrained_files: Optional[Dict[str, str]] = None,
+        only_include_pretrained_words: bool = False,
+        tokens_to_add: Dict[str, List[str]] = None,
+        min_pretrained_embeddings: Dict[str, int] = None,
+    ):
+        self.sources = sources
+        self.pretrained_files = pretrained_files
+        self.min_count = min_count
+        self.max_vocab_size = max_vocab_size
+        self.only_include_pretrained_words = only_include_pretrained_words
+        self.tokens_to_add = tokens_to_add
+        self.min_pretrained_embeddings = min_pretrained_embeddings
