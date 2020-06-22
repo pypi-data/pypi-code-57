@@ -1,0 +1,65 @@
+from ..entities.decorater import Decorater
+from ..protocols.executor import ExecutorProtocol
+from typing import Callable, ContextManager, Any, Optional
+from ..entities.signatures import Force
+from ..interfaces.decorater import DecoraterInterface
+import inspect
+from pydantic import BaseModel  # pylint: disable=no-name-in-module
+from ..exceptions import InvaildContextTarget
+
+class Depend(Decorater):
+    pre = True
+    depend_callable: Callable
+    cache: bool = False
+
+    def __init__(self, callable, *, cache=False):
+        self.cache = cache
+        self.depend_callable = callable
+
+    async def target(self, interface: DecoraterInterface):
+        if self.cache:
+            if interface.local_storage.get(self.depend_callable):
+                yield interface.local_storage.get(self.depend_callable)
+                return
+        result = await interface.dispatcher_interface.broadcast.Executor(ExecutorProtocol(
+            target=self.depend_callable,
+            event=interface.event,
+            hasReferrer=True
+        ))
+        if inspect.isasyncgen(result) or\
+            (inspect.isgenerator(result) and \
+              not inspect.iscoroutinefunction(self.depend_callable)):
+            if inspect.isgenerator(result):
+                for i in result:
+                    yield i
+            elif inspect.isasyncgen(result):
+                async for i in result:
+                    yield i
+        else:
+            if self.cache:
+                interface.local_storage[self.depend_callable] = result
+            yield result
+            return
+
+class Middleware(Decorater):
+    pre = True
+    context_target: Any
+
+    def __init__(self, context_target: ContextManager):
+        self.context_target = context_target
+
+    async def target(self, interface: DecoraterInterface):
+        if all([
+            hasattr(self.context_target, "__aenter__"),
+            hasattr(self.context_target, "__aexit__")
+        ]):
+            async with self.context_target as mw_value:
+                yield mw_value
+        elif all([
+            hasattr(self.context_target, "__enter__"),
+            hasattr(self.context_target, "__exit__")
+        ]):
+            with self.context_target as mw_value:
+                yield mw_value
+        else:
+            raise InvaildContextTarget(self.context_target, "is not vaild as a context target.")
