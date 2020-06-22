@@ -1,0 +1,53 @@
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+# Create your models here.
+class Status(models.Model):
+    status = models.BooleanField(null=True, default=True)
+    class Meta:
+        abstract = True
+
+
+class DatLog(Status):
+    dat_insercao = models.DateTimeField(auto_now_add=True, null=True)
+    dat_edicao = models.DateTimeField(auto_now=True, null=True)
+    dat_delete = models.DateTimeField(null=True)
+    class Meta:
+        abstract = True
+
+
+class UsrLog(Status):
+    usr_insercao = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, related_name='usr_insercao_%(app_label)s_%(class)s')
+    usr_edicao = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, related_name='usr_edicao_%(app_label)s_%(class)s')
+    usr_delete = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, related_name='usr_delete_%(app_label)s_%(class)s')
+    class Meta:
+        abstract = True
+
+
+class Log(DatLog, UsrLog):
+    class Meta:
+        abstract = True
+
+
+class Profile(AbstractUser, Log):
+    nm_completo = models.CharField(max_length=200, null=True)
+    class Meta:
+        abstract = True
+
+
+class Funcionario(Profile):
+    cr = models.CharField(max_length=200, null=True)
+    class Meta:
+        managed = False
+
+
+class Cliente(Profile):
+    cpf = models.CharField(max_length=200, null=True)
+    class Meta:
+        managed = False
+
+
+class Usuario(Funcionario, Cliente):
+
+    class Meta:
+        db_table = 'Usuario'
