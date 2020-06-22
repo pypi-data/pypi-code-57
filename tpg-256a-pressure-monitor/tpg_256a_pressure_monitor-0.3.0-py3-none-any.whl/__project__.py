@@ -1,0 +1,13 @@
+__author__ = 'Carlos Vigo <carlosv@phys.ethz.ch>'
+__email__ = '<carlosv@phys.ethz.ch>'
+__short_author__ = 'Carlos Vigo'
+__copyright__ = '2020, Carlos Vigo'
+__module_name__ = 'tpg_256a_pressure_monitor.py'
+__package_name__ = 'tpg-256a-pressure-monitor'
+__project_name__ = 'TPG-256A Pressure Daemon'
+__url__ = 'https://gitlab.ethz.ch/exotic-matter/cw-beam/maxigauge-pressure-monitor'
+__documentation__ = 'https://maxigauge-pressure-monitor.readthedocs.io'
+__version__ = '0.3.0'
+__short_version__ = '0.3.0'
+__description__ = 'Readout software for the Pfeiffer TPG-256A Pressure Controller'
+
