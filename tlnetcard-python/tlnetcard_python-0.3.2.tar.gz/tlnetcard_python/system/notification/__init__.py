@@ -1,0 +1,1 @@
+""" Initializes Notification subclasses. """
