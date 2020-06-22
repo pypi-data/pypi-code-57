@@ -1,0 +1,102 @@
+from cron_migration.app.models.environment import Environment
+import os
+import importlib.util
+import json
+from typing import Iterator, Dict
+from cron_migration.revisions.manager import TaskManager
+
+
+class RevisionMapper:
+    def __init__(self, environment: Environment):
+        self._environment = environment
+        self.revisions: Dict[str, TaskManager] = {}
+        self._last_upgraded_revision = ""
+        self._heads: Dict[str, TaskManager] = {}
+        self._tails: Dict[str, TaskManager] = {}
+
+    def stream_revisions(self) -> Iterator[TaskManager]:
+        revision_path = self._environment.get_revisions_path()
+        for module_ in os.listdir(revision_path.path):
+            if "__pycache__" in module_:
+                continue
+
+            module_path = revision_path.join(module_)
+            spec = importlib.util.spec_from_file_location(module_, f"{module_path}")
+            revision = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(revision)
+            yield TaskManager(revision.Revision, module_path)
+
+    def review(self):
+        for revision in self.stream_revisions():
+            if revision.get_revision_id() in self.revisions:
+                # todo: handle error: duplicate
+                continue
+            self.revisions[revision.get_revision_id()] = revision
+            if revision.get_down_revision() is None:
+                self._tails[revision.get_revision_id()] = revision
+
+        for revision in self.revisions.values():
+            if revision.get_down_revision() is None:
+                continue
+            prev_revision = self.revisions[revision.get_down_revision()]
+            prev_revision.set_next(revision.task)
+
+        for revision_id in self._tails:
+            tail = revision_id
+            revision = self.revisions[revision_id]
+            while revision:
+                revision_id = revision.get_revision_id()
+                revision = self.revisions[revision.get_revision_id()].next
+
+            self._tails[tail] = self.revisions[revision_id]  # start to end
+            self._heads[revision_id] = self.revisions[tail]  # end to start
+
+    def total_heads(self):
+        return len(self._heads)
+
+    def get_latest_revision(self):
+        if (revision_signature := self._environment.get_last_head()):
+            if revision_signature in self.revisions:
+                return self._tails[revision_signature].get_revision_id()
+        return None
+
+    @property
+    def get_revision_to_upgrade(self):
+        try:
+            with open(self._environment.path_from_base('.json'), "r") as f:
+                ...
+        except FileNotFoundError:
+            with open(self._environment.path_from_base('.json'), "w") as f:
+                ...
+
+        with open(self._environment.path_from_base('.json'), "r") as f:
+            json_ = {}
+            for tail in self._tails:
+                try:
+                    json_ = json.load(f) if not json_ else json_
+                except json.JSONDecodeError:
+                    ...
+                try:
+                    # todo handle error
+                    revision_key = tail
+                    if revision_line := json_.get(tail, None):
+                        if not self.revisions[revision_line].next:
+                            raise Exception()
+                        revision_key = self.revisions[revision_line].next.get_revision_id()
+
+                    yield revision_key
+                except (FileNotFoundError, Exception):
+                    continue
+
+    def get_tail_from_head(self, revision: TaskManager):
+        return self._heads[revision.get_revision_id()].get_revision_id()
+
+    def get_head_from_tail(self, revision: TaskManager):
+        return self._tails[revision.get_revision_id()].get_revision_id()
+
+    def get_waiting_list(self):
+        for revision_to_update in self.get_revision_to_upgrade:
+            revision = self.revisions[revision_to_update]
+            while revision:
+                yield (self.revisions[revision.get_revision_id()])
+                revision = self.revisions[revision.get_revision_id()].next
