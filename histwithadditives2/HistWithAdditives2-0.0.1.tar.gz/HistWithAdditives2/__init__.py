@@ -1,0 +1,2 @@
+from .Prettyhist import HistPlot
+
