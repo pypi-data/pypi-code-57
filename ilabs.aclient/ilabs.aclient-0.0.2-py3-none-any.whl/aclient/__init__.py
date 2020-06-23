@@ -1,0 +1,6 @@
+__version__      = '0.0.2'
+__url__          = 'https://github.com/innodatalabs/ilabs.aclient'
+__author__       = 'Mike Kroutikov'
+__author_email__ = 'mkroutikov@innodata.com'
+__description__  = 'Asychronous client to connect to api.innodatalabs.com'
+__keywords__     = 'innodatalabs api rest async trio'
