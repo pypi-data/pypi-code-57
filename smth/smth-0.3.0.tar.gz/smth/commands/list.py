@@ -1,0 +1,20 @@
+import logging
+from typing import List
+
+from smth import db
+
+from . import command
+
+log = logging.getLogger(__name__)
+
+
+class ListCommand(command.Command):  # pylint: disable=too-few-public-methods
+    """Displays list of existing notebooks."""
+
+    def execute(self, args: List[str] = None) -> None:
+        """Get notebooks from database and show them to user."""
+        try:
+            notebooks = self._db.get_notebooks()
+            self.view.show_notebooks(notebooks)
+        except db.Error as exception:
+            self._exit_with_error(exception)
