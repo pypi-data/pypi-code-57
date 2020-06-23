@@ -1,0 +1,1 @@
+from qsmcli.install import Install
