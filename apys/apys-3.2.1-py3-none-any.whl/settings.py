@@ -1,0 +1,33 @@
+import os
+
+##
+# CONFIG
+#
+
+DEFAULT_LOCAL_NAME = 'local'
+DEFAULT_DEV_NAME = 'dev'
+DEFAULT_PROD_NAME = 'prod'
+
+DEFAULT_LOG = False
+DEFAULT_COLOR = True
+DEFAULT_PORT = '$PORT|8080|int'
+DEFAULT_CORS = False
+
+##
+# PROJECT
+#
+
+DIR_CONFIG = 'config'
+DIR_ENDPOINTS = 'endpoints'
+DIR_FILTERS = 'filters'
+DIR_UTILS = 'utils'
+
+DEFAULT_PROD_PORT = '$PORT|80|int'
+DEFAULT_PROD_CORS = False
+DEFAULT_PROD_LOG_DIR = os.path.join('/', 'var', 'logs', 'apys')
+DEFAULT_PROD_LOG_DEBUG_FILE = 'debug.log'
+DEFAULT_PROD_LOG_ERROR_FILE = 'error.log'
+DEFAULT_PROD_COLOR = DEFAULT_CORS
+
+DEFAULT_DEV_PORT = DEFAULT_PORT
+DEFAULT_DEV_CORS = '*'
