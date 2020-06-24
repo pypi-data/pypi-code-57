@@ -1,0 +1,81 @@
+from django.conf import settings
+from edc_constants.constants import (
+    LOST_TO_FOLLOWUP,
+    OTHER,
+    UNKNOWN,
+    DEAD,
+    NONE,
+    NOT_APPLICABLE,
+)
+from edc_list_data import PreloadData
+from inte_prn.constants import (
+    LATE_EXCLUSION,
+    OTHER_RX_DISCONTINUATION,
+    TRANSFERRED,
+    WITHDRAWAL,
+)
+
+list_data = {
+    "inte_lists.conditions": [
+        ("hypertension", "Patient has high blood pressure (Hypertension)"),
+        ("diabetes", "Patient has high blood sugar (Diabetes)"),
+        ("hiv_infection", "Patient has HIV infection (HIV+)"),
+    ],
+    "inte_lists.offstudyreasons": [
+        ("completed_followup", "Patient completed 12 months of follow-up"),
+        (LOST_TO_FOLLOWUP, "Patient lost to follow-up"),
+        (DEAD, "Patient reported/known to have died"),
+        (WITHDRAWAL, "Patient withdrew consent to participate further"),
+        (LATE_EXCLUSION, "Patient fulfilled late exclusion criteria*"),
+        (TRANSFERRED, "Patient has been transferred to another health centre"),
+        (OTHER, "Other reason (specify below)",),
+    ],
+    "inte_lists.hypertensiontreatment": [
+        ("bendroflumethiazide", "Bendroflumethiazide"),
+        ("captopril", "Captopril"),
+        ("enalapril", "Enalapril"),
+        ("ramipril", "Ramipril"),
+        ("frusemide", "Frusemide"),
+        ("losartan", "Losartan"),
+        ("nifedipine", "Nifedipine"),
+        ("amlodipine", "Amlodipine"),
+        ("atenolol", "Atenolol"),
+        ("metoprolol", "Metoprolol"),
+        ("carvedilol", "Carvedilol"),
+        ("valsartan", "Valsartan"),
+        ("simvastatin", "Simvastatin"),
+        (NOT_APPLICABLE, "Not applicable"),
+        (OTHER, "Other treatment (specify below)"),
+    ],
+    "inte_lists.arvregimens": [
+        ("TDF_3TC_ATV_r", "TDF + 3TC + ATV/r"),
+        ("TDF_FTC_ATV_r", "TDF + FTC + ATV/r"),
+        ("TDF_3TC_LPV_r", "TDF + 3TC + LPV/r"),
+        ("AZT_3TC_ATV_r", "AZT + 3TC + ATV/r"),
+        ("AZT_3TC_LPV_r", "AZT + 3TC + LPV/r"),
+        ("ABC_3TC_ATV_r", "ABC + 3TC + ATV/r"),
+        ("ABC_3TC_LPV_r", "ABC + 3TC + LPV/r"),
+        ("TDF_FTC_LPV_r", "TDF + FTC + LPV/r"),
+        ("DTG_ABC/3TC_ATV_r", "DTG + (ABC/3TC) + ATV/r"),
+        (OTHER, "Other, specify"),
+    ],
+    "inte_lists.visitreasons": [
+        ("drug_refill", "Drug Refill"),
+        ("clinic_review", "Clinic Review"),
+        ("unwell", "Feeling unwell (self referral)"),
+        ("unscheduled", "Unscheduled"),
+    ],
+    "inte_lists.diabetestreatment": [
+        ("metformin_b", "Metformin (B)"),
+        ("glibenclamide_s", "Glibenclamide (S)"),
+        ("glimepiride_s", "Glimepiride (S)"),
+        ("gliclazide_s", "Gliclazide (S)"),
+        ("glipizide_s", "Glipizide (S)"),
+        ("insulin", "Insulin"),
+        (OTHER, "Other, specify"),
+    ],
+}
+
+
+if settings.APP_NAME != "inte_lists":
+    preload_data = PreloadData(list_data=list_data)
