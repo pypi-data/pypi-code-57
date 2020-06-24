@@ -1,0 +1,28 @@
+﻿'''_6400.py
+
+CVTPulleyCompoundAdvancedSystemDeflection
+'''
+
+
+from mastapy.system_model.analyses_and_results.advanced_system_deflections.compound import _6442
+from mastapy._internal.python_net import python_net_import
+
+_CVT_PULLEY_COMPOUND_ADVANCED_SYSTEM_DEFLECTION = python_net_import('SMT.MastaAPI.SystemModel.AnalysesAndResults.AdvancedSystemDeflections.Compound', 'CVTPulleyCompoundAdvancedSystemDeflection')
+
+
+__docformat__ = 'restructuredtext en'
+__all__ = ('CVTPulleyCompoundAdvancedSystemDeflection',)
+
+
+class CVTPulleyCompoundAdvancedSystemDeflection(_6442.PulleyCompoundAdvancedSystemDeflection):
+    '''CVTPulleyCompoundAdvancedSystemDeflection
+
+    This is a mastapy class.
+    '''
+
+    TYPE = _CVT_PULLEY_COMPOUND_ADVANCED_SYSTEM_DEFLECTION
+
+    __hash__ = None
+
+    def __init__(self, instance_to_wrap: 'CVTPulleyCompoundAdvancedSystemDeflection.TYPE'):
+        super().__init__(instance_to_wrap)

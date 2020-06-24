@@ -1,0 +1,31 @@
+﻿'''_2066.py
+
+BeltDriveType
+'''
+
+
+from enum import Enum
+
+from mastapy._internal.python_net import python_net_import
+
+_BELT_DRIVE_TYPE = python_net_import('SMT.MastaAPI.SystemModel.PartModel.Couplings', 'BeltDriveType')
+
+
+__docformat__ = 'restructuredtext en'
+__all__ = ('BeltDriveType',)
+
+
+class BeltDriveType(Enum):
+    '''BeltDriveType
+
+    This is a mastapy class.
+
+    Note:
+        This class is an Enum.
+    '''
+
+    TYPE = _BELT_DRIVE_TYPE
+    __hash__ = None
+
+    PUSHBELT = 0
+    PULLBELT = 1
