@@ -1,0 +1,144 @@
+# -*- coding: utf-8 -*-
+__all__ = ('Service', 'ServiceManager')
+
+from typing import AbstractSet, Iterator, Mapping, Optional
+from urllib.parse import urlparse
+import xmlrpc.client
+
+import attr
+import dockerblade
+import yaml
+
+from .state import SystemStateProbe
+from .. import exceptions
+from ..definitions import Message, SrvFormat, MsgFormat
+from ..description import SystemDescription
+
+
+@attr.s(slots=True, auto_attribs=True)
+class Service:
+    """Provides access to a ROS service.
+
+    Attributes
+    ----------
+    name: str
+        The fully qualified name of this service.
+    url: str
+        The URL of this service.
+    format: SrvFormat
+        The :code:`.srv` definition for this service.
+    """
+    name: str
+    url: str
+    format: SrvFormat
+    _description: SystemDescription
+    _shell: dockerblade.Shell
+
+    def call(self, message: Optional[Message] = None) -> Optional[Message]:
+        """Calls this service.
+
+        Parameters
+        ----------
+        message: Message, optional
+            The message, if any, that should be sent to the service.
+
+        Returns
+        -------
+        Optional[Message]
+            The reply produced by the service, if any.
+        """
+        if not message:
+            yml = '{}'
+        else:
+            yml = yaml.dump(message.to_dict())
+        command = f"rosservice call {self.name} '{yml}'"
+        try:
+            output = self._shell.check_output(command, text=True)
+        except dockerblade.exceptions.CalledProcessError as error:
+            if error.returncode == 2:
+                raise exceptions.ROSWireException('illegal service call args') from error  # noqa
+            raise exceptions.ROSWireException('unexpected error during service call') from error  # noqa
+
+        fmt_response: Optional[MsgFormat] = self.format.response
+        if not fmt_response:
+            return None
+
+        d = yaml.safe_load(output)
+        db_type = self._description.types
+        return db_type.from_dict(fmt_response, d)
+
+
+class ServiceManager(Mapping[str, Service]):
+    """Provides access to the registered services on a ROS graph."""
+    def __init__(self,
+                 description: SystemDescription,
+                 host_ip_master: str,
+                 api: xmlrpc.client.Server,
+                 shell: dockerblade.Shell
+                 ) -> None:
+        self.__description = description
+        self.__host_ip_master = host_ip_master
+        self.__api = api
+        self.__shell = shell
+        self.__state_probe: SystemStateProbe = \
+            SystemStateProbe.via_xmlrpc_connection(self.__api)
+
+    def __get_service_names(self) -> AbstractSet[str]:
+        return set(self.__state_probe().services.keys())
+
+    def __len__(self) -> int:
+        """The number of advertised services on this ROS graph."""
+        return len(self.__get_service_names())
+
+    def __iter__(self) -> Iterator[str]:
+        """Returns an iterator over the names of all registered services."""
+        yield from self.__get_service_names()
+
+    def __getitem__(self, name: str) -> Service:
+        """Fetches a proxy for a service with a given name.
+
+        Parameters
+        ----------
+        name: str
+            The name of the service.
+
+        Returns
+        -------
+        Service
+            A proxy to the given service.
+
+        Raises
+        ------
+        ServiceNotFound
+            If no service is found with the given name.
+        """
+        code: int
+        msg: str
+        url_container: str
+        code, msg, url_container = \
+            self.__api.lookupService('/.roswire', name)  # type: ignore
+
+        if code == -1:
+            raise exceptions.ServiceNotFoundError(name)
+        if code != 1:
+            m = "an unexpected error occurred when retrieving services"
+            m = f"{m}: {msg} (code: {code})"
+            raise exceptions.ROSWireException(m)
+
+        # convert URL to host network
+        parsed = urlparse(url_container)
+        url_host = f"{parsed.scheme}://{self.__host_ip_master}:{parsed.port}"
+
+        # find the format for the service
+        command = f'rosservice type {name}'
+        try:
+            name_fmt = self.__shell.check_output(command, text=True)
+        except dockerblade.exceptions.CalledProcessError as error:
+            m = f"unable to determine type for service [{name}]"
+            raise exceptions.ROSWireException(m) from error
+        fmt = self.__description.formats.services[name_fmt]
+        return Service(name=name,
+                       url=url_host,
+                       format=fmt,
+                       description=self.__description,
+                       shell=self.__shell)
