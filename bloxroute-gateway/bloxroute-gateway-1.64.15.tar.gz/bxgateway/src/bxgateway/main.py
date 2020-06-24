@@ -1,0 +1,261 @@
+#!/bin/env python
+#
+# Copyright (C) 2018, bloXroute Labs, All rights reserved.
+# See the file COPYING for details.
+#
+# Startup script for Gateway nodes
+#
+import argparse
+import os
+import random
+import sys
+
+from bxcommon import node_runner, constants
+from bxcommon.models.outbound_peer_model import OutboundPeerModel
+from bxcommon.utils import cli, convert, config, ip_resolver
+from bxgateway import btc_constants, gateway_constants, eth_constants, ont_constants
+from bxgateway.connections.gateway_node_factory import get_gateway_node_type
+from bxgateway.testing.test_modes import TestModes
+from bxgateway.utils.eth import crypto_utils
+from bxgateway.gateway_opts import GatewayOpts
+from bxgateway.utils.gateway_start_args import GatewayStartArgs
+from bxcommon.models.quota_type_model import QuotaType
+from bxutils import logging_messages_utils
+
+MAX_NUM_CONN = 8192
+PID_FILE_NAME = "bxgateway.pid"
+
+
+def convert_net_magic(magic):
+    if magic in btc_constants.BTC_MAGIC_NUMBERS:
+        return btc_constants.BTC_MAGIC_NUMBERS[magic]
+    elif magic in ont_constants.ONT_MAGIC_NUMBERS:
+        return ont_constants.ONT_MAGIC_NUMBERS[magic]
+    else:
+        return int(magic)
+
+
+def generate_default_nonce():
+    return random.randint(0, sys.maxsize)
+
+
+def parse_peer_string(peer_string):
+    """
+    Parses string of format ip:port,ip:port,ip:port,... to list of OutboundPeerModels.
+    """
+    peers = []
+    for ip_port_string in peer_string.split(","):
+        if ip_port_string:
+            ip_port_list = ip_port_string.strip().split(":")
+            ip = ip_port_list[0]
+            port = int(ip_port_list[1])
+            peers.append(OutboundPeerModel(ip, port))
+    return peers
+
+
+def get_default_eth_private_key():
+    gateway_key_file_name = config.get_data_file(eth_constants.GATEWAY_PRIVATE_KEY_FILE_NAME)
+
+    if os.path.exists(gateway_key_file_name):
+        with open(gateway_key_file_name, "r") as key_file:
+            private_key = key_file.read().strip()
+    else:
+        private_key = crypto_utils.generate_random_private_key_hex_str()
+        with open(gateway_key_file_name, "w") as key_file:
+            key_file.write(private_key)
+
+    return private_key
+
+
+def get_opts() -> GatewayOpts:
+    config.set_working_directory(os.path.dirname(__file__))
+
+    # Parse gateway specific command line parameters
+    arg_parser = argparse.ArgumentParser(parents=[cli.get_argument_parser()],
+                                         description="Command line interface for the bloXroute Gateway.",
+                                         usage="bloxroute_gateway --blockchain-protocol [PROTOCOL] [additional "
+                                               "arguments]")
+    arg_parser.add_argument("--blockchain-protocol", help="Blockchain protocol. e.g BitcoinCash, Ethereum", type=str,
+                            required=True)
+    arg_parser.add_argument("--blockchain-network", help="Blockchain network. e.g Mainnet, Testnet", type=str)
+    arg_parser.add_argument("--blockchain-port", help="Blockchain node port", type=int)
+    arg_parser.add_argument("--blockchain-ip", help="Blockchain node ip",
+                            type=ip_resolver.blocking_resolve_ip,
+                            default=None)
+    arg_parser.add_argument("--enode", help="Ethereum enode. ex) enode://<eth node public key>@<eth node "
+                                            "ip>:<port>?discport=0",
+                            type=str,
+                            default=None)
+    arg_parser.add_argument("--peer-gateways",
+                            help="Optional gateway peer ip/ports that will always be connected to. "
+                                 "Should be in the format ip1:port1,ip2:port2,...",
+                            type=parse_peer_string,
+                            default="")
+    arg_parser.add_argument("--min-peer-gateways",
+                            help="Minimum number of peer gateways before node will contact SDN for more.",
+                            type=int,
+                            default=0)
+    arg_parser.add_argument("--remote-blockchain-ip", help="Remote blockchain node ip to proxy messages from",
+                            type=ip_resolver.blocking_resolve_ip)
+    arg_parser.add_argument("--remote-blockchain-port", help="Remote blockchain node port to proxy messages from",
+                            type=int)
+    arg_parser.add_argument("--connect-to-remote-blockchain",
+                            help="If gateway should proxy messages from a remote bloXroute owned blockchain node",
+                            type=convert.str_to_bool,
+                            default=True)
+    arg_parser.add_argument("--encrypt-blocks",
+                            help="If gateway should encrypt blocks",
+                            type=convert.str_to_bool,
+                            default=False)
+    arg_parser.add_argument("--peer-relays",
+                            help="(TEST ONLY) Optional relays peer ip/ports that will always be connected to. "
+                                 "Should be in the format ip1:port1,ip2:port2,...",
+                            type=parse_peer_string,
+                            default="")
+    arg_parser.add_argument("--test-mode",
+                            help="(TEST ONLY) Test modes to run. Possible values: {0}".format(
+                                [TestModes.DROPPING_TXS]
+                            ),
+                            default="",
+                            nargs="*")
+    arg_parser.add_argument("--sync-tx-service", help="sync tx service in gateway", type=convert.str_to_bool,
+                            default=True)
+
+    # Bitcoin specific
+    arg_parser.add_argument("--blockchain-version", help="Bitcoin protocol version", type=int)
+    arg_parser.add_argument("--blockchain-nonce", help="Bitcoin nonce", default=generate_default_nonce())
+    arg_parser.add_argument("--blockchain-net-magic", help="Bitcoin net.magic parameter",
+                            type=convert_net_magic)
+    arg_parser.add_argument("--blockchain-services", help="Bitcoin services parameter", type=int)
+    arg_parser.add_argument("--enable-node-cache", help="Retrieve peers from cookie if unavailable",
+                            type=convert.str_to_bool,
+                            default=True)
+
+    # Ethereum specific
+    arg_parser.add_argument("--node-public-key", help="Public key of Ethereum node for encrypted communication",
+                            type=str)
+    arg_parser.add_argument("--private-key", help="Private key for encrypted communication with Ethereum node",
+                            type=str)
+    arg_parser.add_argument("--network-id", help="Ethereum network id", type=int)
+    arg_parser.add_argument("--genesis-hash", help="Genesis block hash of Ethereum network", type=str)
+    arg_parser.add_argument("--chain-difficulty", help="Difficulty of genesis block Ethereum network (hex)", type=str)
+    arg_parser.add_argument("--no-discovery", help="Disable discovery of Ethereum node and wait for node to connect",
+                            type=bool, default=False)
+    arg_parser.add_argument("--remote-public-key",
+                            help="Public key of remote bloXroute owned Ethereum node for encrypted communication "
+                                 "during chainstate sync ",
+                            type=str)
+
+    # Ontology specific
+    # TODO: Remove test only arguments
+    arg_parser.add_argument("--http-info-port", help="(TEST ONLY)Ontology http server port to view node information",
+                            type=int, default=config.get_env_default(GatewayStartArgs.HTTP_INFO_PORT))
+    arg_parser.add_argument("--consensus-port", help="Ontology consensus port", type=int,
+                            default=config.get_env_default(GatewayStartArgs.CONSENSUS_PORT))
+    arg_parser.add_argument("--relay", help="(TEST ONLY)Ontology relay state", type=convert.str_to_bool,
+                            default=config.get_env_default(GatewayStartArgs.RELAY_STATE))
+    arg_parser.add_argument("--is-consensus", help="(TEST ONLY)Ontology consensus node", type=convert.str_to_bool,
+                            default=config.get_env_default(GatewayStartArgs.IS_CONSENSUS))
+
+    arg_parser.add_argument(
+        "--compact-block",
+        help="Specify either the gateway supports compact block message or not",
+        type=convert.str_to_bool,
+        default=constants.ACCEPT_COMPACT_BLOCK
+    )
+    arg_parser.add_argument(
+        "--compact-block-min-tx-count",
+        help="Minimal number of short transactions in compact block to attempt decompression.",
+        type=int, default=btc_constants.BTC_COMPACT_BLOCK_DECOMPRESS_MIN_TX_COUNT
+    )
+    arg_parser.add_argument(
+        "--dump-short-id-mapping-compression",
+        help="If true, the gateway will dump all short ids and txhashes compressed into a block",
+        type=convert.str_to_bool,
+        default=False
+    )
+    arg_parser.add_argument(
+        "--dump-short-id-mapping-compression-path",
+        help="Folder to dump compressed short ids to",
+        default="/app/bxgateway/debug/compressed-short-ids"
+    )
+    arg_parser.add_argument(
+        "--tune-send-buffer-size",
+        help="If true, then the gateway will increase the send buffer's size for the blockchain connection",
+        default=False,
+        type=convert.str_to_bool
+    )
+    arg_parser.add_argument(
+        "--max-block-interval",
+        help="Maximum time gateway holds a block while waiting for confirmation of receipt from blockchain node",
+        type=int,
+        default=gateway_constants.MAX_INTERVAL_BETWEEN_BLOCKS_S
+    )
+    arg_parser.add_argument(
+        "--cookie-file-path",
+        help="Cookie file path",
+        type=str,
+    )
+    arg_parser.add_argument(
+        "--blockchain-message-ttl",
+        help="Duration to queue up messages for if blockchain node connection is broken",
+        type=int,
+        default=gateway_constants.DEFAULT_BLOCKCHAIN_MESSAGE_TTL_S
+    )
+    arg_parser.add_argument(
+        "--remote-blockchain-message-ttl",
+        help="Duration to queue up messages for if remote blockchain node connection is broken",
+        type=int,
+        default=gateway_constants.DEFAULT_REMOTE_BLOCKCHAIN_MESSAGE_TTL_S
+    )
+    arg_parser.add_argument(
+        "--stay-alive-duration",
+        help="Duration Gateway should stay alive for without an active blockchain or relay connection",
+        type=int,
+        default=gateway_constants.DEFAULT_STAY_ALIVE_DURATION_S
+    )
+    arg_parser.add_argument(
+        "--initial-liveliness-check",
+        help="Duration Gateway should stay alive for without an initial blockchain or relay connection",
+        type=int,
+        default=gateway_constants.INITIAL_LIVELINESS_CHECK_S
+    )
+    arg_parser.add_argument(
+        "--config-update-interval",
+        help="update the node configuration on cron, 0 to disable",
+        type=int,
+        default=gateway_constants.CONFIG_UPDATE_INTERVAL_S
+    )
+    arg_parser.add_argument("--require-blockchain-connection",
+                            help="Close gateway if connection with blockchain node can't be established "
+                                 "when the flag is set to True",
+                            type=convert.str_to_bool,
+                            default=True)
+    default_tx_quota_type = config.get_env_default(GatewayStartArgs.DEFAULT_TX_QUOTA_TYPE)
+    arg_parser.add_argument(
+        "--default-tx-quota-type",
+        help=f"quota type to use when distributing transactions to the Bdn network (default: {default_tx_quota_type})",
+        type=QuotaType.from_string,
+        choices=list(QuotaType),
+        default=default_tx_quota_type
+    )
+
+    opts = GatewayOpts(cli.parse_arguments(arg_parser))
+    config.set_data_directory(opts.data_dir)
+    if opts.private_key is None:
+        opts.private_key = get_default_eth_private_key()
+
+    return opts
+
+
+def main():
+    logger_names = node_runner.LOGGER_NAMES.copy()
+    logger_names.append("bxgateway")
+    logging_messages_utils.logger_names = set(logger_names)
+    opts = get_opts()
+    node_type = get_gateway_node_type(opts.blockchain_protocol)
+    node_runner.run_node(config.get_data_file(PID_FILE_NAME), opts, node_type, logger_names=logger_names)
+
+
+if __name__ == "__main__":
+    main()
