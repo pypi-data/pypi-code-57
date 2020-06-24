@@ -1,0 +1,120 @@
+﻿'''_642.py
+
+ConicalMeshedGearLoadDistributionAnalysis
+'''
+
+
+from mastapy._internal import constructor
+from mastapy.gears.cylindrical import _945, _944
+from mastapy import _0
+from mastapy._internal.python_net import python_net_import
+
+_CONICAL_MESHED_GEAR_LOAD_DISTRIBUTION_ANALYSIS = python_net_import('SMT.MastaAPI.Gears.LTCA.Conical', 'ConicalMeshedGearLoadDistributionAnalysis')
+
+
+__docformat__ = 'restructuredtext en'
+__all__ = ('ConicalMeshedGearLoadDistributionAnalysis',)
+
+
+class ConicalMeshedGearLoadDistributionAnalysis(_0.APIBase):
+    '''ConicalMeshedGearLoadDistributionAnalysis
+
+    This is a mastapy class.
+    '''
+
+    TYPE = _CONICAL_MESHED_GEAR_LOAD_DISTRIBUTION_ANALYSIS
+
+    __hash__ = None
+
+    def __init__(self, instance_to_wrap: 'ConicalMeshedGearLoadDistributionAnalysis.TYPE'):
+        super().__init__(instance_to_wrap)
+
+    @property
+    def name(self) -> 'str':
+        '''str: 'Name' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return self.wrapped.Name
+
+    @property
+    def torque(self) -> 'float':
+        '''float: 'Torque' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return self.wrapped.Torque
+
+    @property
+    def estimated_gear_stiffness_from_fe_model(self) -> 'float':
+        '''float: 'EstimatedGearStiffnessFromFEModel' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return self.wrapped.EstimatedGearStiffnessFromFEModel
+
+    @property
+    def maximum_von_mises_root_stress_tension_side(self) -> 'float':
+        '''float: 'MaximumVonMisesRootStressTensionSide' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return self.wrapped.MaximumVonMisesRootStressTensionSide
+
+    @property
+    def maximum_von_mises_root_stress_compression_side(self) -> 'float':
+        '''float: 'MaximumVonMisesRootStressCompressionSide' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return self.wrapped.MaximumVonMisesRootStressCompressionSide
+
+    @property
+    def max_tensile_principal_root_stress_tension_side(self) -> 'float':
+        '''float: 'MaxTensilePrincipalRootStressTensionSide' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return self.wrapped.MaxTensilePrincipalRootStressTensionSide
+
+    @property
+    def max_tensile_principal_root_stress_compression_side(self) -> 'float':
+        '''float: 'MaxTensilePrincipalRootStressCompressionSide' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return self.wrapped.MaxTensilePrincipalRootStressCompressionSide
+
+    @property
+    def contact_charts(self) -> '_945.GearLTCAContactCharts':
+        '''GearLTCAContactCharts: 'ContactCharts' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return constructor.new(_945.GearLTCAContactCharts)(self.wrapped.ContactCharts) if self.wrapped.ContactCharts else None
+
+    @property
+    def contact_charts_as_text_file(self) -> '_944.GearLTCAContactChartDataAsTextFile':
+        '''GearLTCAContactChartDataAsTextFile: 'ContactChartsAsTextFile' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return constructor.new(_944.GearLTCAContactChartDataAsTextFile)(self.wrapped.ContactChartsAsTextFile) if self.wrapped.ContactChartsAsTextFile else None

@@ -1,0 +1,62 @@
+﻿'''_1546.py
+
+ISO14179SettingsPerBearingType
+'''
+
+
+from mastapy.bearings import _1484
+from mastapy._internal import constructor, conversion
+from mastapy._internal.python_net import python_net_import
+from mastapy.bearings.bearing_results.rolling import _1544
+from mastapy.utility import _334
+
+_DATABASE_WITH_SELECTED_ITEM = python_net_import('SMT.MastaAPI.UtilityGUI.Databases', 'DatabaseWithSelectedItem')
+_ISO14179_SETTINGS_PER_BEARING_TYPE = python_net_import('SMT.MastaAPI.Bearings.BearingResults.Rolling', 'ISO14179SettingsPerBearingType')
+
+
+__docformat__ = 'restructuredtext en'
+__all__ = ('ISO14179SettingsPerBearingType',)
+
+
+class ISO14179SettingsPerBearingType(_334.IndependentReportablePropertiesBase['ISO14179SettingsPerBearingType']):
+    '''ISO14179SettingsPerBearingType
+
+    This is a mastapy class.
+    '''
+
+    TYPE = _ISO14179_SETTINGS_PER_BEARING_TYPE
+    __hash__ = None
+
+    def __init__(self, instance_to_wrap: 'ISO14179SettingsPerBearingType.TYPE'):
+        super().__init__(instance_to_wrap)
+
+    @property
+    def rolling_bearing_type(self) -> '_1484.RollingBearingType':
+        '''RollingBearingType: 'RollingBearingType' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        value = conversion.pn_to_mp_enum(self.wrapped.RollingBearingType)
+        return constructor.new(_1484.RollingBearingType)(value) if value else None
+
+    @property
+    def iso14179_settings_database(self) -> 'str':
+        '''str: 'ISO14179SettingsDatabase' is the original name of this property.'''
+
+        return self.wrapped.ISO14179SettingsDatabase.SelectedItemName
+
+    @iso14179_settings_database.setter
+    def iso14179_settings_database(self, value: 'str'):
+        self.wrapped.ISO14179SettingsDatabase.SetSelectedItem(str(value) if value else None)
+
+    @property
+    def iso14179_settings(self) -> '_1544.ISO14179Settings':
+        '''ISO14179Settings: 'ISO14179Settings' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return constructor.new(_1544.ISO14179Settings)(self.wrapped.ISO14179Settings) if self.wrapped.ISO14179Settings else None

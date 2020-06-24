@@ -1,0 +1,33 @@
+﻿'''_247.py
+
+GearingTypes
+'''
+
+
+from enum import Enum
+
+from mastapy._internal.python_net import python_net_import
+
+_GEARING_TYPES = python_net_import('SMT.MastaAPI.Materials', 'GearingTypes')
+
+
+__docformat__ = 'restructuredtext en'
+__all__ = ('GearingTypes',)
+
+
+class GearingTypes(Enum):
+    '''GearingTypes
+
+    This is a mastapy class.
+
+    Note:
+        This class is an Enum.
+    '''
+
+    TYPE = _GEARING_TYPES
+    __hash__ = None
+
+    OPEN_GEARING = 0
+    COMMERCIAL_ENCLOSED_GEAR_UNITS = 1
+    PRECISION_ENCLOSED_GEAR_UNITS = 2
+    EXTRA_PRECISION_ENCLOSED_GEAR_UNITS = 3

@@ -1,0 +1,302 @@
+﻿'''_1850.py
+
+ElectricMachineDataSet
+'''
+
+
+from typing import Callable, List
+
+from mastapy._internal import constructor, conversion
+from mastapy.system_model.analyses_and_results.static_loads import _2060, _2061
+from mastapy._internal.implicit import list_with_selected_item
+from mastapy.system_model.imported_fes import _1871
+from mastapy.math_utility import _1227
+from mastapy.units_and_measurements import _2062
+from mastapy import _1
+from mastapy._internal.python_net import python_net_import
+
+_ELECTRIC_MACHINE_DATA_SET = python_net_import('SMT.MastaAPI.SystemModel.ImportedFEs', 'ElectricMachineDataSet')
+
+
+__docformat__ = 'restructuredtext en'
+__all__ = ('ElectricMachineDataSet',)
+
+
+class ElectricMachineDataSet(_1.APIBase):
+    '''ElectricMachineDataSet
+
+    This is a mastapy class.
+    '''
+
+    TYPE = _ELECTRIC_MACHINE_DATA_SET
+    __hash__ = None
+
+    def __init__(self, instance_to_wrap: 'ElectricMachineDataSet.TYPE'):
+        super().__init__(instance_to_wrap)
+
+    @property
+    def data_set_name(self) -> 'str':
+        '''str: 'DataSetName' is the original name of this property.'''
+
+        return self.wrapped.DataSetName
+
+    @data_set_name.setter
+    def data_set_name(self, value: 'str'):
+        self.wrapped.DataSetName = str(value) if value else None
+
+    @property
+    def stator_tangential_loads_amplitude_cut_off(self) -> 'float':
+        '''float: 'StatorTangentialLoadsAmplitudeCutOff' is the original name of this property.'''
+
+        return self.wrapped.StatorTangentialLoadsAmplitudeCutOff
+
+    @stator_tangential_loads_amplitude_cut_off.setter
+    def stator_tangential_loads_amplitude_cut_off(self, value: 'float'):
+        self.wrapped.StatorTangentialLoadsAmplitudeCutOff = float(value) if value else 0.0
+
+    @property
+    def stator_radial_loads_amplitude_cut_off(self) -> 'float':
+        '''float: 'StatorRadialLoadsAmplitudeCutOff' is the original name of this property.'''
+
+        return self.wrapped.StatorRadialLoadsAmplitudeCutOff
+
+    @stator_radial_loads_amplitude_cut_off.setter
+    def stator_radial_loads_amplitude_cut_off(self, value: 'float'):
+        self.wrapped.StatorRadialLoadsAmplitudeCutOff = float(value) if value else 0.0
+
+    @property
+    def stator_axial_loads_amplitude_cut_off(self) -> 'float':
+        '''float: 'StatorAxialLoadsAmplitudeCutOff' is the original name of this property.'''
+
+        return self.wrapped.StatorAxialLoadsAmplitudeCutOff
+
+    @stator_axial_loads_amplitude_cut_off.setter
+    def stator_axial_loads_amplitude_cut_off(self, value: 'float'):
+        self.wrapped.StatorAxialLoadsAmplitudeCutOff = float(value) if value else 0.0
+
+    @property
+    def torque_ripple_amplitude_cut_off(self) -> 'float':
+        '''float: 'TorqueRippleAmplitudeCutOff' is the original name of this property.'''
+
+        return self.wrapped.TorqueRippleAmplitudeCutOff
+
+    @torque_ripple_amplitude_cut_off.setter
+    def torque_ripple_amplitude_cut_off(self, value: 'float'):
+        self.wrapped.TorqueRippleAmplitudeCutOff = float(value) if value else 0.0
+
+    @property
+    def rotor_x_force_amplitude_cut_off(self) -> 'float':
+        '''float: 'RotorXForceAmplitudeCutOff' is the original name of this property.'''
+
+        return self.wrapped.RotorXForceAmplitudeCutOff
+
+    @rotor_x_force_amplitude_cut_off.setter
+    def rotor_x_force_amplitude_cut_off(self, value: 'float'):
+        self.wrapped.RotorXForceAmplitudeCutOff = float(value) if value else 0.0
+
+    @property
+    def rotor_y_force_amplitude_cut_off(self) -> 'float':
+        '''float: 'RotorYForceAmplitudeCutOff' is the original name of this property.'''
+
+        return self.wrapped.RotorYForceAmplitudeCutOff
+
+    @rotor_y_force_amplitude_cut_off.setter
+    def rotor_y_force_amplitude_cut_off(self, value: 'float'):
+        self.wrapped.RotorYForceAmplitudeCutOff = float(value) if value else 0.0
+
+    @property
+    def rotor_z_force_amplitude_cut_off(self) -> 'float':
+        '''float: 'RotorZForceAmplitudeCutOff' is the original name of this property.'''
+
+        return self.wrapped.RotorZForceAmplitudeCutOff
+
+    @rotor_z_force_amplitude_cut_off.setter
+    def rotor_z_force_amplitude_cut_off(self, value: 'float'):
+        self.wrapped.RotorZForceAmplitudeCutOff = float(value) if value else 0.0
+
+    @property
+    def rotor_moment_from_stator_teeth_axial_loads_amplitude_cut_off(self) -> 'float':
+        '''float: 'RotorMomentFromStatorTeethAxialLoadsAmplitudeCutOff' is the original name of this property.'''
+
+        return self.wrapped.RotorMomentFromStatorTeethAxialLoadsAmplitudeCutOff
+
+    @rotor_moment_from_stator_teeth_axial_loads_amplitude_cut_off.setter
+    def rotor_moment_from_stator_teeth_axial_loads_amplitude_cut_off(self, value: 'float'):
+        self.wrapped.RotorMomentFromStatorTeethAxialLoadsAmplitudeCutOff = float(value) if value else 0.0
+
+    @property
+    def torque_ripple_input_type(self) -> '_2060.TorqueRippleInputType':
+        '''TorqueRippleInputType: 'TorqueRippleInputType' is the original name of this property.'''
+
+        value = conversion.pn_to_mp_enum(self.wrapped.TorqueRippleInputType)
+        return constructor.new(_2060.TorqueRippleInputType)(value) if value else None
+
+    @torque_ripple_input_type.setter
+    def torque_ripple_input_type(self, value: '_2060.TorqueRippleInputType'):
+        value = value if value else None
+        value = conversion.mp_to_pn_enum(value)
+        self.wrapped.TorqueRippleInputType = value
+
+    @property
+    def node_for_first_tooth(self) -> 'list_with_selected_item.ListWithSelectedItem_ImportedFEStiffnessNode':
+        '''list_with_selected_item.ListWithSelectedItem_ImportedFEStiffnessNode: 'NodeForFirstTooth' is the original name of this property.'''
+
+        return constructor.new(list_with_selected_item.ListWithSelectedItem_ImportedFEStiffnessNode)(self.wrapped.NodeForFirstTooth) if self.wrapped.NodeForFirstTooth else None
+
+    @node_for_first_tooth.setter
+    def node_for_first_tooth(self, value: 'list_with_selected_item.ListWithSelectedItem_ImportedFEStiffnessNode.implicit_type()'):
+        wrapper_type = list_with_selected_item.ListWithSelectedItem_ImportedFEStiffnessNode.TYPE
+        enclosed_type = list_with_selected_item.ListWithSelectedItem_ImportedFEStiffnessNode.implicit_type()
+        value = wrapper_type[enclosed_type](value.wrapped if value else None)
+        self.wrapped.NodeForFirstTooth = value
+
+    @property
+    def delete_data_set(self) -> 'Callable[[], None]':
+        '''Callable[[], None]: 'DeleteDataSet' is the original name of this property.
+
+        Note:
+            This property is readonly.
+        '''
+
+        return self.wrapped.DeleteDataSet
+
+    def clear_all_data(self):
+        ''' 'ClearAllData' is the original name of this method.'''
+
+        self.wrapped.ClearAllData()
+
+    def derive_stator_tangential_load_interpolators_from_torque_ripple_interpolators(self):
+        ''' 'DeriveStatorTangentialLoadInterpolatorsFromTorqueRippleInterpolators' is the original name of this method.'''
+
+        self.wrapped.DeriveStatorTangentialLoadInterpolatorsFromTorqueRippleInterpolators()
+
+    def derive_rotor_moments_interpolators_from_stator_axial_loads_interpolators(self):
+        ''' 'DeriveRotorMomentsInterpolatorsFromStatorAxialLoadsInterpolators' is the original name of this method.'''
+
+        self.wrapped.DeriveRotorMomentsInterpolatorsFromStatorAxialLoadsInterpolators()
+
+    def derive_torque_ripple_interpolator_from_stator_tangential_load_interpolators(self):
+        ''' 'DeriveTorqueRippleInterpolatorFromStatorTangentialLoadInterpolators' is the original name of this method.'''
+
+        self.wrapped.DeriveTorqueRippleInterpolatorFromStatorTangentialLoadInterpolators()
+
+    def derive_rotor_z_force_interpolator_from_stator_axial_load_interpolators(self):
+        ''' 'DeriveRotorZForceInterpolatorFromStatorAxialLoadInterpolators' is the original name of this method.'''
+
+        self.wrapped.DeriveRotorZForceInterpolatorFromStatorAxialLoadInterpolators()
+
+    def derive_rotor_forces_from_stator_loads(self):
+        ''' 'DeriveRotorForcesFromStatorLoads' is the original name of this method.'''
+
+        self.wrapped.DeriveRotorForcesFromStatorLoads()
+
+    def multiple_fourier_series_interpolator_for(self, harmonic_load_data_type: '_2061.HarmonicLoadDataType') -> '_1227.MultipleFourierSeriesInterpolator':
+        ''' 'MultipleFourierSeriesInterpolatorFor' is the original name of this method.
+
+        Args:
+            harmonic_load_data_type (mastapy.system_model.analyses_and_results.static_loads.HarmonicLoadDataType)
+
+        Returns:
+            mastapy.math_utility.MultipleFourierSeriesInterpolator
+        '''
+
+        harmonic_load_data_type = conversion.mp_to_pn_enum(harmonic_load_data_type)
+        method_result = self.wrapped.MultipleFourierSeriesInterpolatorFor(harmonic_load_data_type)
+        return constructor.new(_1227.MultipleFourierSeriesInterpolator)(method_result) if method_result else None
+
+    def add_or_replace_excitation_data(self, harmonic_load_data_type: '_2061.HarmonicLoadDataType', speed: 'float', fourier_series_values: 'List[float]', fourier_series_name: 'str', fourier_series_measurement_type: '_2062.MeasurementType'):
+        ''' 'AddOrReplaceExcitationData' is the original name of this method.
+
+        Args:
+            harmonic_load_data_type (mastapy.system_model.analyses_and_results.static_loads.HarmonicLoadDataType)
+            speed (float)
+            fourier_series_values (List[float])
+            fourier_series_name (str)
+            fourier_series_measurement_type (mastapy.units_and_measurements.MeasurementType)
+        '''
+
+        harmonic_load_data_type = conversion.mp_to_pn_enum(harmonic_load_data_type)
+        speed = float(speed)
+        fourier_series_values = conversion.mp_to_pn_objects_in_list(fourier_series_values)
+        fourier_series_name = str(fourier_series_name)
+        fourier_series_measurement_type = conversion.mp_to_pn_enum(fourier_series_measurement_type)
+        self.wrapped.AddOrReplaceExcitationData(harmonic_load_data_type, speed if speed else 0.0, fourier_series_values, fourier_series_name if fourier_series_name else None, fourier_series_measurement_type)
+
+    def add_or_replace_excitation_data_with_amplitudes_and_phases(self, harmonic_load_data_type: '_2061.HarmonicLoadDataType', speed: 'float', fourier_series_amplitudes: 'List[float]', fourier_series_phases: 'List[float]', fourier_series_mean_value: 'float', fourier_series_name: 'str', fourier_series_measurement_type: '_2062.MeasurementType'):
+        ''' 'AddOrReplaceExcitationData' is the original name of this method.
+
+        Args:
+            harmonic_load_data_type (mastapy.system_model.analyses_and_results.static_loads.HarmonicLoadDataType)
+            speed (float)
+            fourier_series_amplitudes (List[float])
+            fourier_series_phases (List[float])
+            fourier_series_mean_value (float)
+            fourier_series_name (str)
+            fourier_series_measurement_type (mastapy.units_and_measurements.MeasurementType)
+        '''
+
+        harmonic_load_data_type = conversion.mp_to_pn_enum(harmonic_load_data_type)
+        speed = float(speed)
+        fourier_series_amplitudes = conversion.mp_to_pn_objects_in_list(fourier_series_amplitudes)
+        fourier_series_phases = conversion.mp_to_pn_objects_in_list(fourier_series_phases)
+        fourier_series_mean_value = float(fourier_series_mean_value)
+        fourier_series_name = str(fourier_series_name)
+        fourier_series_measurement_type = conversion.mp_to_pn_enum(fourier_series_measurement_type)
+        self.wrapped.AddOrReplaceExcitationData(harmonic_load_data_type, speed if speed else 0.0, fourier_series_amplitudes, fourier_series_phases, fourier_series_mean_value if fourier_series_mean_value else 0.0, fourier_series_name if fourier_series_name else None, fourier_series_measurement_type)
+
+    def multiple_fourier_series_interpolator_for_with_stiffness_node(self, harmonic_load_data_type: '_2061.HarmonicLoadDataType', node: '_1871.ImportedFEStiffnessNode') -> '_1227.MultipleFourierSeriesInterpolator':
+        ''' 'MultipleFourierSeriesInterpolatorFor' is the original name of this method.
+
+        Args:
+            harmonic_load_data_type (mastapy.system_model.analyses_and_results.static_loads.HarmonicLoadDataType)
+            node (mastapy.system_model.imported_fes.ImportedFEStiffnessNode)
+
+        Returns:
+            mastapy.math_utility.MultipleFourierSeriesInterpolator
+        '''
+
+        harmonic_load_data_type = conversion.mp_to_pn_enum(harmonic_load_data_type)
+        method_result = self.wrapped.MultipleFourierSeriesInterpolatorFor(harmonic_load_data_type, node.wrapped if node else None)
+        return constructor.new(_1227.MultipleFourierSeriesInterpolator)(method_result) if method_result else None
+
+    def add_or_replace_excitation_data_with_stiffness_node(self, harmonic_load_data_type: '_2061.HarmonicLoadDataType', node: '_1871.ImportedFEStiffnessNode', speed: 'float', fourier_series_values: 'List[float]', fourier_series_name: 'str', fourier_series_measurement_type: '_2062.MeasurementType'):
+        ''' 'AddOrReplaceExcitationData' is the original name of this method.
+
+        Args:
+            harmonic_load_data_type (mastapy.system_model.analyses_and_results.static_loads.HarmonicLoadDataType)
+            node (mastapy.system_model.imported_fes.ImportedFEStiffnessNode)
+            speed (float)
+            fourier_series_values (List[float])
+            fourier_series_name (str)
+            fourier_series_measurement_type (mastapy.units_and_measurements.MeasurementType)
+        '''
+
+        harmonic_load_data_type = conversion.mp_to_pn_enum(harmonic_load_data_type)
+        speed = float(speed)
+        fourier_series_values = conversion.mp_to_pn_objects_in_list(fourier_series_values)
+        fourier_series_name = str(fourier_series_name)
+        fourier_series_measurement_type = conversion.mp_to_pn_enum(fourier_series_measurement_type)
+        self.wrapped.AddOrReplaceExcitationData(harmonic_load_data_type, node.wrapped if node else None, speed if speed else 0.0, fourier_series_values, fourier_series_name if fourier_series_name else None, fourier_series_measurement_type)
+
+    def add_or_replace_excitation_data_with_amplitudes_phases_and_stiffness_node(self, harmonic_load_data_type: '_2061.HarmonicLoadDataType', node: '_1871.ImportedFEStiffnessNode', speed: 'float', fourier_series_amplitudes: 'List[float]', fourier_series_phases: 'List[float]', fourier_series_mean_value: 'float', fourier_series_name: 'str', fourier_series_measurement_type: '_2062.MeasurementType'):
+        ''' 'AddOrReplaceExcitationData' is the original name of this method.
+
+        Args:
+            harmonic_load_data_type (mastapy.system_model.analyses_and_results.static_loads.HarmonicLoadDataType)
+            node (mastapy.system_model.imported_fes.ImportedFEStiffnessNode)
+            speed (float)
+            fourier_series_amplitudes (List[float])
+            fourier_series_phases (List[float])
+            fourier_series_mean_value (float)
+            fourier_series_name (str)
+            fourier_series_measurement_type (mastapy.units_and_measurements.MeasurementType)
+        '''
+
+        harmonic_load_data_type = conversion.mp_to_pn_enum(harmonic_load_data_type)
+        speed = float(speed)
+        fourier_series_amplitudes = conversion.mp_to_pn_objects_in_list(fourier_series_amplitudes)
+        fourier_series_phases = conversion.mp_to_pn_objects_in_list(fourier_series_phases)
+        fourier_series_mean_value = float(fourier_series_mean_value)
+        fourier_series_name = str(fourier_series_name)
+        fourier_series_measurement_type = conversion.mp_to_pn_enum(fourier_series_measurement_type)
+        self.wrapped.AddOrReplaceExcitationData(harmonic_load_data_type, node.wrapped if node else None, speed if speed else 0.0, fourier_series_amplitudes, fourier_series_phases, fourier_series_mean_value if fourier_series_mean_value else 0.0, fourier_series_name if fourier_series_name else None, fourier_series_measurement_type)

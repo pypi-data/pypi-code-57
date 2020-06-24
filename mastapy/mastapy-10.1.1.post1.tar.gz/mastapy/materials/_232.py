@@ -1,0 +1,36 @@
+﻿'''_232.py
+
+BearingLubricationCondition
+'''
+
+
+from enum import Enum
+
+from mastapy._internal.python_net import python_net_import
+
+_BEARING_LUBRICATION_CONDITION = python_net_import('SMT.MastaAPI.Materials', 'BearingLubricationCondition')
+
+
+__docformat__ = 'restructuredtext en'
+__all__ = ('BearingLubricationCondition',)
+
+
+class BearingLubricationCondition(Enum):
+    '''BearingLubricationCondition
+
+    This is a mastapy class.
+
+    Note:
+        This class is an Enum.
+    '''
+
+    TYPE = _BEARING_LUBRICATION_CONDITION
+    __hash__ = None
+
+    OIL_LEVEL_TAKEN_FROM_ASSEMBLY = 0
+    OIL_SPLASH_LUBRICATION_BEARING_IN_OIL_MIST = 1
+    OIL_SPLASH_LUBRICATION_OIL_LEVEL_TO_MIDDLE_OF_BEARING = 2
+    OIL_SPLASH_LUBRICATION_OIL_LEVEL_TO_MIDDLE_OF_LOWEST_ELEMENT = 3
+    OIL_CIRCULATING_LUBRICATION = 4
+    GREASE_RUNIN_BEARING = 5
+    GREASE_NEWLY_GREASED = 6

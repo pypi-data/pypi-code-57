@@ -1,0 +1,27 @@
+﻿'''_5787.py
+
+ComponentCompoundModalAnalysisAtASpeed
+'''
+
+
+from mastapy.system_model.analyses_and_results.modal_analyses_at_a_speed.compound import _5837
+from mastapy._internal.python_net import python_net_import
+
+_COMPONENT_COMPOUND_MODAL_ANALYSIS_AT_A_SPEED = python_net_import('SMT.MastaAPI.SystemModel.AnalysesAndResults.ModalAnalysesAtASpeed.Compound', 'ComponentCompoundModalAnalysisAtASpeed')
+
+
+__docformat__ = 'restructuredtext en'
+__all__ = ('ComponentCompoundModalAnalysisAtASpeed',)
+
+
+class ComponentCompoundModalAnalysisAtASpeed(_5837.PartCompoundModalAnalysisAtASpeed):
+    '''ComponentCompoundModalAnalysisAtASpeed
+
+    This is a mastapy class.
+    '''
+
+    TYPE = _COMPONENT_COMPOUND_MODAL_ANALYSIS_AT_A_SPEED
+    __hash__ = None
+
+    def __init__(self, instance_to_wrap: 'ComponentCompoundModalAnalysisAtASpeed.TYPE'):
+        super().__init__(instance_to_wrap)

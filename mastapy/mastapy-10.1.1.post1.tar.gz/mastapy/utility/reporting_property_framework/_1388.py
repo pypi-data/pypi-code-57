@@ -1,0 +1,32 @@
+﻿'''_1388.py
+
+CellValuePosition
+'''
+
+
+from enum import Enum
+
+from mastapy._internal.python_net import python_net_import
+
+_CELL_VALUE_POSITION = python_net_import('SMT.MastaAPI.Utility.ReportingPropertyFramework', 'CellValuePosition')
+
+
+__docformat__ = 'restructuredtext en'
+__all__ = ('CellValuePosition',)
+
+
+class CellValuePosition(Enum):
+    '''CellValuePosition
+
+    This is a mastapy class.
+
+    Note:
+        This class is an Enum.
+    '''
+
+    TYPE = _CELL_VALUE_POSITION
+    __hash__ = None
+
+    LEFT = 0
+    CENTER = 1
+    RIGHT = 2
