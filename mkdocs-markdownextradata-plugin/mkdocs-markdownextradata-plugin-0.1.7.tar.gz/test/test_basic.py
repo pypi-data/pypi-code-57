@@ -1,0 +1,29 @@
+import os
+import yaml
+import click
+import pytest
+import tempfile
+from pathlib import Path
+from click.testing import CliRunner
+from mkdocs.__main__ import build_command
+
+config = yaml.load(open('test/mkdocs.yml', 'rb'), Loader=yaml.Loader)
+
+def test_basic_working():
+    runner = CliRunner()
+    customer = config.get('extra', {}).get('customer', {})
+    test_json_string = config.get('extra', {}).get('test_json_string', "")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        result = runner.invoke(build_command, ['--config-file', 'test/mkdocs.yml', '--site-dir', tmpdir])
+        assert result.exit_code == 0
+
+        index_file = Path(tmpdir) / 'index.html'
+        assert index_file.exists(),  f"{index_file} does not exist, it should"
+        contents = index_file.read_text()
+
+        assert '<h1 id="hi-there-your-name-here">Hi there, Your name here</h1>' in contents, f"customer.name is not in index"
+        assert '<p>Inside the included md file there 3 <img alt="star" src="ressources/star.png" /></p></div>' in contents, f"customer.star is not in index or not rendering as expected"
+        assert f"Welcome to {customer.get('web_url')}" in contents, f"customer.web_url is not in index"
+        assert isinstance(test_json_string, str), "test_json_string is not a str it should be"
+        assert '{"name": "Bob"}' == test_json_string, f"Json string is not correct"
