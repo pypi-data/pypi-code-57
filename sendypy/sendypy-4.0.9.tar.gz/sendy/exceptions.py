@@ -1,0 +1,2 @@
+class SendyError(Exception):
+    pass
