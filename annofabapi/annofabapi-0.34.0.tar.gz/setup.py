@@ -1,0 +1,34 @@
+# -*- coding: utf-8 -*-
+from setuptools import setup
+
+packages = \
+['annofabapi', 'annofabapi.dataclass']
+
+package_data = \
+{'': ['*']}
+
+install_requires = \
+['backoff', 'dataclasses-json', 'python-dateutil', 'requests']
+
+extras_require = \
+{':python_version < "3.7"': ['dataclasses']}
+
+setup_kwargs = {
+    'name': 'annofabapi',
+    'version': '0.34.0',
+    'description': 'Python Clinet Library of AnnoFab WebAPI (https://annofab.com/docs/api/)',
+    'long_description': '# annofab-api-python-client\n[AnnoFab Web API](https://annofab.com/docs/api/) のPythonクライアントライブラリです。\n\n[![Build Status](https://travis-ci.com/kurusugawa-computer/annofab-api-python-client.svg?branch=master)](https://travis-ci.com/kurusugawa-computer/annofab-api-python-client)\n[![PyPI version](https://badge.fury.io/py/annofabapi.svg)](https://badge.fury.io/py/annofabapi)\n[![Python Versions](https://img.shields.io/pypi/pyversions/annofabapi.svg)](https://pypi.org/project/annofabapi/)\n\n\n\n\n* **AnnoFab Web API Documentation:** https://annofab.com/docs/api/\n* **Reference Documentation:** https://annofab-api-python-client.readthedocs.io/en/latest/\n* **annofab-cli** https://github.com/kurusugawa-computer/annofab-cli\n    * 「タスクの一括差し戻し」や、「プロジェクト間の差分表示」など、AnnoFabの画面で実施するには時間がかかる操作を、CLIツールとして提供しています。\n* **開発者用ドキュメント**: [README_for_developer.md](README_for_developer.md)\n\n\n\n\n# 注意\n* 作者または著作権者は、ソフトウェアに関してなんら責任を負いません。\n* 現在、APIは開発途上版です。予告なく互換性のない変更がある可能性をご了承ください。\n* put, post, delete系のメソッドを間違えて実行してしまわないよう、注意してください。特に「プロジェクト削除」や「アノテーション仕様更新」のAPIには十分注意してください。\n \n# 廃止予定\n\n## 2020-05-01以降 utilsのいくつかのメソッドを非公開\n以下のメソッドを非公開にします。以下のメソッドは本来非公開用でして、外部で利用することを想定していなかったためです。\n* utils.raise_for_status\n* utils.log_error_response\n* utils.download\n\n\n\n# Features\ncURLやPostmanなどよりも簡単にAnnoFab Web APIにアクセスできます。\n\n* ログインを意識せずに、APIを利用できます。\n* アクセス過多などで失敗した場合は、リトライされます。\n* 「画像を入力データとして登録する」機能など、APIを組み合わせた機能も利用できます。\n\n\n\n# Requirements\n* Python 3.6+ \n\n# Install\n\n```\n$ pip install annofabapi\n```\n\nhttps://pypi.org/project/annofabapi/\n\n# Usage\n\n## インスタンス生成\n\n### user_id, passwordをコンストラクタ引数に渡す\n\n```python\n# APIアクセス用のインスタンスを生成\nfrom annofabapi import build\n\n\nuser_id = "XXXXXX"\npassword = "YYYYYY"\n\nservice = build(user_id, password)\n```\n\n### `.netrc`に記載されたuser_id, passwordから生成\n`.netrc`ファイルに、AnnofabのユーザIDとパスワードを記載します。\n\n```plain:.netrc\nmachine annofab.com\nlogin annofab_user_id\npassword annofab_password\n```\n\n```python\nfrom annofabapi import build_from_netrc\nservice = build_from_netrc()\n```\n\n\n#### For Linux\n* パスは`$HOME/.netrc`\n* `$ chmod 600 $HOME/.netrc`でパーミッションを変更する\n\n\n\n#### For Windows\n* パスは`%USERPROFILE%\\.netrc`\n\n\n## `service.api`のサンプルコード\n\n* `service.api`には、Web APIに対応するメソッドが定義されています。\n* メソッド名は、[AnnoFab Web APIのOpenAPI specification](https://annofab.com/docs/api/swagger.yaml)に記載されている`operationId`を、スネークケースに変換したものです。\n* 各メソッドの戻り値の型は`Tupple[Content, Response]`です。\nResponseは[requestsモジュールのReponseオブジェクト](https://2.python-requests.org/en/master/api/#requests.Response)です。\nContentはReponseの中身です。\n\n```python\nproject_id = "ZZZZZZ"\n# `status`が`complete`のタスクを取得する\ncontent, response = service.api.get_tasks(project_id, query_params={\'status\': \'complete\'})\nprint(content)\n# {\'list\': [{\'project_id\': ...\n\n# simpleアノテーションzipのダウンロード用URLを取得する\ncontent, response = service.api.get_annotation_archive(project_id)\nurl = response.headers[\'Location\']\n```\n\n## `service.wrapper`のサンプルコード\n\n`service.wrapper`には、`server.api`を組み合わせたメソッドが定義されています。\n\n\n```python\n# `status`が`complete`のタスクすべてを取得する\ntasks = service.wrapper.get_all_tasks(project_id, query_params={\'status\': \'complete\'})\nprint(tasks)\n# [{\'project_id\': ...\n\n# simpleアノテーションzipのダウンロード\nservice.wrapper.download_annotation_archive(project_id, \'output_dir\')\n\n# 画像ファイルを入力データとして登録する\nservice.wrapper.put_input_data_from_file(project_id, \'sample_input_data_id\', f\'sample.png\')\n\nsrc_project_id = "AAAAAA"\ndest_project_id = "BBBBBB"\n\n# プロジェクトメンバをコピー（誤って実行しないように注意すること）\nservice.wrapper.copy_project_members(src_project_id, dest_project_id)\n\n# アノテーション仕様のコピー（誤って実行しないように注意すること）\nservice.wrapper.copy_annotation_specs(src_project_id, dest_project_id)\n```\n\n## アノテーションzipの読み込み\nダウンロードしたアノテーションzipを、JSONファイルごとに読み込みます。\nzipファイルを展開したディレクトリも読み込み可能です。\n\n```python\nimport zipfile\nfrom pathlib import Path\nfrom annofabapi.parser import lazy_parse_simple_annotation_dir, lazy_parse_simple_annotation_zip, SimpleAnnotationZipParser, SimpleAnnotationDirParser, lazy_parse_simple_annotation_zip_by_task\n\n\n# Simpleアノテーションzipの読み込み\niter_parser = lazy_parse_simple_annotation_zip(Path("simple-annotation.zip"))\nfor parser in iter_parser:\n    simple_annotation = parser.parse()\n    print(simple_annotation)\n\n# Simpleアノテーションzipを展開したディレクトリの読み込み\niter_parser = lazy_parse_simple_annotation_dir(Path("simple-annotation-dir"))\nfor parser in iter_parser:\n    simple_annotation = parser.parse()\n    print(simple_annotation)\n\n# Simpleアノテーションzipをタスク単位で読み込む\ntask_iter_parser = lazy_parse_simple_annotation_zip_by_task(Path("simple-annotation.zip"))\nfor task_parser in task_iter_parser:\n    print(task_parser.task_id)\n    for parser in task_parser.lazy_parse():\n        simple_annotation = parser.parse()\n        print(simple_annotation)\n        \n\n# Simpleアノテーションzip内の1個のJSONファイルを読み込み\nwith zipfile.ZipFile(\'simple-annotation.zip\', \'r\') as zip_file:\n    parser = SimpleAnnotationZipParser(zip_file, "task01/12345678-abcd-1234-abcd-1234abcd5678.json")\n    simple_annotation = parser.parse()\n    print(simple_annotation)\n\n# Simpleアノテーションzip内を展開したディレクトリ内の1個のJSONファイルを読み込み\nparser = SimpleAnnotationDirParser(Path("task01/12345678-abcd-1234-abcd-1234abcd5678.json"))\nsimple_annotation = parser.parse()\nprint(simple_annotation)\n\n\n\n```\n\n\n## DataClass\n`annofabapi.dataclass`に、データ構造用のクラスがあります。\nこれらのクラスを利用すれば、属性で各値にアクセスできます。\n\n```python\nfrom annofabapi.dataclass.task import Task, TaskHistory\ndict_task, _ = service.api.get_task(project_id, task_id)\ntask = Task.from_dict(dict_task)\n\nprint(task.task_id)\nprint(task.task_status)\n\n```\n\n\n## 備考\n\n### `annofabapi`のログを出力する方法（サンプル）\n\n```python\nimport logging\nlogging_formatter = \'%(levelname)-8s : %(asctime)s : %(filename)s : %(name)s : %(funcName)s : %(message)s\'\nlogging.basicConfig(format=logging_formatter)\nlogging.getLogger("annofabapi").setLevel(level=logging.DEBUG)\n```\n\n',
+    'author': 'yuji38kwmt',
+    'author_email': 'yuji38kwmt@gmail.com',
+    'maintainer': 'yuji38kwmt',
+    'maintainer_email': 'yuji38kwmt@gmail.com',
+    'url': 'https://github.com/kurusugawa-computer/annofab-api-python-client',
+    'packages': packages,
+    'package_data': package_data,
+    'install_requires': install_requires,
+    'extras_require': extras_require,
+    'python_requires': '>=3.6,<4.0',
+}
+
+
+setup(**setup_kwargs)
