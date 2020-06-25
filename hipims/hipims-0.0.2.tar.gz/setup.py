@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+init
+To do:
+    install the package
+Created on Thu June  25 10:00:15 2020
+
+@author: Xilin Xia
+"""
+
+import os
+import pathlib
+import platform
+
+from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext as build_ext_orig
+
+
+class CMakeExtension(Extension):
+
+    def __init__(self, name):
+        # don't invoke the original build_ext for this special extension
+        super().__init__(name, sources=[])
+
+
+class build_ext(build_ext_orig):
+
+    def run(self):
+        for ext in self.extensions:
+            self.build_cmake(ext)
+        super().run()
+
+    def build_cmake(self, ext):
+        cwd = pathlib.Path().absolute()
+
+
+        build_temp = pathlib.Path(self.build_temp)
+        build_temp.mkdir(parents=True, exist_ok=True)
+        extdir = pathlib.Path(self.get_ext_fullpath(ext.name))
+        extdir.mkdir(parents=True, exist_ok=True)
+
+        #the following has not been tested for windows yet
+        print('The cuda toolkit root path is '+ os.environ['CUDAToolkit_ROOT'])
+        cmake_args = ['-DCUDA_TOOLKIT_ROOT_DIR=' + os.environ['CUDAToolkit_ROOT']]
+        build_type = os.environ.get("BUILD_TYPE", "Release")
+        build_args = ['--config', build_type]
+        if platform.system() == "Windows":
+            cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(build_type.upper(), extdir.parent.parent.parent.absolute())]
+            if sys.maxsize > 2**32:
+                cmake_args += ['-A', 'x64']
+            build_args += ['--', '/m']
+        else:
+            cmake_args += ['-DCMAKE_BUILD_TYPE=' + build_type]
+            cmake_args += [
+            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + str(extdir.parent.parent.parent.absolute()),
+            ]
+            build_args += ['--', '-j4']
+
+        os.chdir(str(build_temp))
+        self.spawn(['cmake', str(cwd)] + cmake_args)
+        if not self.dry_run:
+            self.spawn(['cmake', '--build', '.'] + build_args)
+        os.chdir(str(cwd))
+
+
+setup(
+    name='hipims',
+    version='0.0.2',
+    author='Xilin Xia',
+    author_email='x.xia2@lboro.ac.uk',
+    packages=['hipims_engine'],
+    ext_modules=[CMakeExtension('hipims_engine/apps/cudaFloodSolversPybind/cuda_flood_solvers_pybind')],
+    long_description=open("README.rst").read(),
+    description='engine of hipims',
+    cmdclass={
+        'build_ext': build_ext,
+    },
+    licence='GPLv3',
+    zip_safe=False,
+    classifiers=[]
+) 
