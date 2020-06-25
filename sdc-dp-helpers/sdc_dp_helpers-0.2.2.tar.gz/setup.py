@@ -1,0 +1,77 @@
+"""
+    Set up the sdc_helpers package
+"""
+from setuptools import setup
+
+
+setup(
+    name='sdc_dp_helpers',
+    packages=
+    [
+        'sdc_dp_helpers',
+        'sdc_dp_helpers.google_analytics',
+        'sdc_dp_helpers.api_utilities',
+    ],
+    install_requires=[
+        'astroid==2.3.3',
+        'attrs==19.3.0',
+        'boto3==1.12.39',
+        'botocore==1.15.39',
+        'cachetools==4.0.0',
+        'certifi==2020.4.5.1',
+        'cffi==1.14.0',
+        'chardet==3.0.4',
+        'cryptography==2.9',
+        'docutils==0.2.25.2',
+        'google-api-core==1.16.0',
+        'google-api-python-client==1.8.0',
+        'google-auth==1.13.1',
+        'google-auth-httplib2==0.0.3',
+        'googleapis-common-protos==1.51.0',
+        'httplib2>=0.2.28.0',
+        'idna==2.9',
+        'importlib-metadata==1.6.0',
+        'isort==4.3.21',
+        'jmespath==0.9.5',
+        'lazy-object-proxy==1.4.3',
+        'mccabe==0.6.1',
+        'more-itertools==8.2.0',
+        'numpy==1.18.2',
+        'oauth2client==4.1.3',
+        'packaging==20.3',
+        'pandas==1.0.3',
+        'pluggy==0.2.23.1',
+        'protobuf==3.11.3',
+        'py==1.8.1',
+        'pyasn1==0.4.8',
+        'pyasn1-modules==0.2.8',
+        'pycparser==2.20',
+        'pylint==2.4.4',
+        'pyOpenSSL==19.1.0',
+        'pyparsing==2.4.7',
+        'pytest==5.4.1',
+        'python-dateutil==2.8.1',
+        'pytz==2019.3',
+        'PyYAML==5.3.1',
+        'requests==2.23.0',
+        'rsa==4.0',
+        's3transfer==0.3.3',
+        'six==1.14.0',
+        'typed-ast==1.4.1',
+        'uritemplate==3.0.2.2',
+        'urllib3==1.25.8',
+        'wcwidth==0.2.2.9',
+        'wrapt==1.11.2',
+        'zipp==3.1.0'
+    ],
+    description='A module for developing data pipelines from external api\'s',
+    version='0.2.2',
+    url='http://github.com/RingierIMU/sdc-dataPipeline-helpers',
+    author='Ringier South Africa',
+    author_email='tools@ringier.co.za',
+    keywords=[
+        'pip',
+        'datapipeline',
+        'helpers',
+    ]
+)
