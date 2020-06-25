@@ -1,0 +1,24 @@
+# Webserver
+HOST = "127.0.0.1"
+PORT = 5000
+DEBUG = False
+TESTING = False
+INSTANCE_URL = "http://127.0.0.1:5000"
+
+ADMIN_EMAIL = "info@cases.lu"
+ADMIN_URL = "https://www.cases.lu"
+
+REMOTE_STATS_SERVER = 'http://127.0.0.1:5000'
+
+# Database
+DB_CONFIG_DICT = {
+    "user": "cedric",
+    "password": "pgsqlpwd",
+    "host": "localhost",
+    "port": 5432,
+}
+DATABASE_NAME = "statsservice"
+SQLALCHEMY_DATABASE_URI = "postgres://{user}:{password}@{host}:{port}/{name}".format(
+    name=DATABASE_NAME, **DB_CONFIG_DICT
+)
+SQLALCHEMY_TRACK_MODIFICATIONS = False
