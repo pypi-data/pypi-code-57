@@ -1,0 +1,11 @@
+class AttributeTemplate:
+    def __init__(self, html_file, action):
+        self.data['html_file'] = html_file
+        self.data['action'] = action
+
+    def get_field(self, field_name):
+        if field_name in self.data.keys():
+            return self.data[field_name]
+        else:
+            raise Exception(
+                'Class {} has no field {}'.format(self.__name__, field_name))
