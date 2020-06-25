@@ -1,0 +1,28 @@
+from setuptools import setup, find_packages
+
+# read requirements/dependencies
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
+
+# read description/README.md
+with open("README.md", 'r') as fh:
+    long_description = fh.read()
+
+
+setup(name='phenoshift',
+      version='0.0.3.dev0',
+      packages=find_packages(),
+      install_requires=requirements,
+      package_data={'':  ['tests/*']},
+      data_files=[('', ['requirements.txt'])],
+      long_description=long_description,
+      long_description_content_type='text/markdown',
+      author='Michael Gargano',
+      author_email='michael.gargano@jax.com',
+      url='https://github.com/TheJacksonLaboratory/phenoshift',
+      description='Python version of LOINC2HPO',
+      license='GPLv3',
+      keywords='python, loinc to hpo',
+      entry_points={'console_scripts': [
+          'phenoshift = phenoshift.main:cli'
+      ]})
